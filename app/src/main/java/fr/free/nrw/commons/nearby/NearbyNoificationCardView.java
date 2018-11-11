@@ -2,6 +2,7 @@ package fr.free.nrw.commons.nearby;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.CoordinatorLayout;
@@ -28,6 +29,7 @@ import timber.log.Timber;
  */
 public class NearbyNoificationCardView  extends CardView{
 
+    private static final int SWIPE_THRESHOLD = 20;
     private Context context;
 
     private Button permissionRequestButton;
@@ -108,7 +110,7 @@ public class NearbyNoificationCardView  extends CardView{
                             if (deltaX < 0) {
                                 //Right to left swipe
                                 isSwipe = true;
-                            } else if (deltaX > 0) {
+                            } else if (deltaX > 0 && pxToDp(deltaX) >= SWIPE_THRESHOLD) {
                                 //Left to right swipe
                                 isSwipe = true;
                             }
@@ -124,6 +126,10 @@ public class NearbyNoificationCardView  extends CardView{
                     }
                     return false;
                 });
+    }
+
+    public static int pxToDp(float px) {
+        return (int) (px / Resources.getSystem().getDisplayMetrics().density);
     }
 
     /**
