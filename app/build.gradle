@@ -96,6 +96,11 @@ dependencies {
     implementation "androidx.exifinterface:exifinterface:1.0.0"
     //metadata extractor
     implementation 'com.drewnoakes:metadata-extractor:2.11.0'
+
+    def room_version = "2.2.0-alpha02"
+
+    implementation "androidx.room:room-runtime:$room_version"
+    annotationProcessor "androidx.room:room-compiler:$room_version"
 }
 
 android {

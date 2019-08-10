@@ -11,6 +11,9 @@ import android.os.Bundle;
 import android.os.RemoteException;
 import android.text.TextUtils;
 
+import fr.free.nrw.commons.AppDatabase;
+import fr.free.nrw.commons.contributions.db.ContributionsItem;
+import fr.free.nrw.commons.mwapi.LogEventResult.LogEvent;
 import org.wikipedia.util.DateUtil;
 
 import java.io.IOException;
@@ -49,6 +52,9 @@ public class ContributionsSyncAdapter extends AbstractThreadedSyncAdapter {
     @Inject
     @Named("default_preferences")
     JsonKvStore defaultKvStore;
+
+    @Inject
+    AppDatabase appDatabase;
 
     public ContributionsSyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
@@ -105,10 +111,11 @@ public class ContributionsSyncAdapter extends AbstractThreadedSyncAdapter {
             }
             Timber.d("Last modified at %s", lastModified);
 
-            List<LogEventResult.LogEvent> logEvents = result.getLogEvents();
+            List<LogEvent> logEvents = result.getLogEvents();
             Timber.d("%d results!", logEvents.size());
             ArrayList<ContentValues> imageValues = new ArrayList<>();
-            for (LogEventResult.LogEvent image : logEvents) {
+            List<ContributionsItem> contributionsItems=new ArrayList<>();
+            for (LogEvent image : logEvents) {
                 if (image.isDeleted()) {
                     // means that this upload was deleted.
                     continue;
@@ -119,30 +126,17 @@ public class ContributionsSyncAdapter extends AbstractThreadedSyncAdapter {
                     continue;
                 }
                 Date dateUpdated = image.getDateUpdated();
-                Contribution contrib = new Contribution(null, null, filename,
+                Contribution contribution = new Contribution(null, null, filename,
                         "", -1, dateUpdated, dateUpdated, user,
                         "", "");
-                contrib.setState(STATE_COMPLETED);
-                imageValues.add(contributionDao.toContentValues(contrib));
-
-                if (imageValues.size() % COMMIT_THRESHOLD == 0) {
-                    try {
-                        contentProviderClient.bulkInsert(BASE_URI, imageValues.toArray(EMPTY));
-                    } catch (RemoteException e) {
-                        throw new RuntimeException(e);
-                    }
-                    imageValues.clear();
-                }
+                contribution.setState(STATE_COMPLETED);
+                ContributionsItem contributionsItem=new ContributionsItem();
+                contributionsItem.fromContribution(contribution);
+                contributionsItems.add(contributionsItem);
+                imageValues.add(contributionDao.toContentValues(contribution));
             }
 
-            if (imageValues.size() != 0) {
-                try {
-                    contentProviderClient.bulkInsert(BASE_URI, imageValues.toArray(EMPTY));
-                } catch (RemoteException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
+            appDatabase.contributionsDao().insertAll(contributionsItems);
             queryContinue = result.getQueryContinue();
             if (TextUtils.isEmpty(queryContinue)) {
                 done = true;

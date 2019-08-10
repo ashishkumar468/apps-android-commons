@@ -1,5 +1,8 @@
 package fr.free.nrw.commons.contributions;
 
+import static android.view.View.GONE;
+import static android.view.View.VISIBLE;
+
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -10,29 +13,26 @@ import android.view.animation.AnimationUtils;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.RecyclerView.LayoutManager;
-
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import fr.free.nrw.commons.AppDatabase;
 import fr.free.nrw.commons.R;
 import fr.free.nrw.commons.contributions.ContributionsListAdapter.Callback;
+import fr.free.nrw.commons.contributions.db.ContributionsItem;
 import fr.free.nrw.commons.di.CommonsDaggerSupportFragment;
 import fr.free.nrw.commons.kvstore.JsonKvStore;
 import fr.free.nrw.commons.wikidata.WikidataClient;
-
-import static android.view.View.GONE;
-import static android.view.View.VISIBLE;
+import java.util.ArrayList;
+import java.util.List;
+import javax.inject.Inject;
+import javax.inject.Named;
 
 /**
  * Created by root on 01.06.2018.
@@ -40,7 +40,7 @@ import static android.view.View.VISIBLE;
 
 public class ContributionsListFragment extends CommonsDaggerSupportFragment {
 
-    private static final String VISIBLE_ITEM_ID = "visible_item_id";
+    private static final String VISIBLE_ITEM_FILENAME = "visible_item_id";
     @BindView(R.id.contributionsList)
     RecyclerView rvContributionsList;
     @BindView(R.id.loadingContributionsProgressBar)
@@ -76,6 +76,11 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment {
 
     private int SPAN_COUNT=3;
 
+    @Inject
+    AppDatabase appDatabase;
+
+
+    private List<ContributionsItem> contributionsItems=new ArrayList<>();
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_contributions_list, container, false);
         ButterKnife.bind(this, view);
@@ -97,6 +102,17 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment {
         initRecyclerView();
         initializeAnimations();
         setListeners();
+
+        fetchContributionsLiveData();
+    }
+
+    private void fetchContributionsLiveData() {
+        appDatabase.contributionsDao().getAllLiveData().observe(this,
+                contributionsItems -> {
+                    this.contributionsItems.clear();
+                    this.contributionsItems.addAll(contributionsItems);
+                    rvContributionsList.post(() -> adapter.setData(contributionsItems));
+                });
     }
 
     private void initRecyclerView() {
@@ -207,9 +223,9 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment {
         }else if(layoutManager instanceof GridLayoutManager){
             lastVisibleItemPosition=((GridLayoutManager)layoutManager).findLastCompletelyVisibleItemPosition();
         }
-        String idOfItemWithPosition = findIdOfItemWithPosition(lastVisibleItemPosition);
-        if (null != idOfItemWithPosition) {
-            outState.putString(VISIBLE_ITEM_ID, idOfItemWithPosition);
+        String fileNameOfItemWithPosition = findIdOfItemWithPosition(lastVisibleItemPosition);
+        if (null != fileNameOfItemWithPosition) {
+            outState.putString(VISIBLE_ITEM_FILENAME, fileNameOfItemWithPosition);
         }
     }
 
@@ -217,21 +233,18 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment {
     public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
         super.onViewStateRestored(savedInstanceState);
         if(null!=savedInstanceState){
-            lastVisibleItemID =savedInstanceState.getString(VISIBLE_ITEM_ID, null);
+            lastVisibleItemID =savedInstanceState.getString(VISIBLE_ITEM_FILENAME, null);
         }
     }
 
 
     /**
      * Gets the id of the contribution from the db
-     * @param position
-     * @return
      */
     @Nullable
     private String findIdOfItemWithPosition(int position) {
-        Contribution contributionForPosition = callback.getContributionForPosition(position);
-        if (null != contributionForPosition) {
-            return contributionForPosition.getContentUri().getLastPathSegment();
+        if (contributionsItems.size() > position) {
+            return contributionsItems.get(position).fileName;
         }
         return null;
     }

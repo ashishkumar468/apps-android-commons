@@ -4,23 +4,12 @@ import android.app.Activity;
 import android.content.ContentProviderClient;
 import android.content.Context;
 import android.view.inputmethod.InputMethodManager;
-
 import androidx.collection.LruCache;
-
+import androidx.room.Room;
 import com.google.gson.Gson;
-
-import org.wikipedia.AppAdapter;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.inject.Named;
-import javax.inject.Singleton;
-
 import dagger.Module;
 import dagger.Provides;
+import fr.free.nrw.commons.AppDatabase;
 import fr.free.nrw.commons.BuildConfig;
 import fr.free.nrw.commons.R;
 import fr.free.nrw.commons.auth.AccountUtil;
@@ -36,6 +25,13 @@ import fr.free.nrw.commons.wikidata.WikidataEditListenerImpl;
 import io.reactivex.Scheduler;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import javax.inject.Named;
+import javax.inject.Singleton;
+import org.wikipedia.AppAdapter;
 
 @Module
 @SuppressWarnings({"WeakerAccess", "unused"})
@@ -195,5 +191,11 @@ public class CommonsApplicationModule {
     @Provides
     public String provideLoggedInUsername() {
         return AppAdapter.get().getUserName();
+    }
+
+    @Provides
+    public AppDatabase providesAppDatabase(Context context) {
+        return Room.databaseBuilder(context,
+                AppDatabase.class, "commons-database").build();
     }
 }
