@@ -194,8 +194,8 @@ public class CommonsApplicationModule {
     }
 
     @Provides
-    public AppDatabase providesAppDatabase(Context context) {
-        return Room.databaseBuilder(context,
+    public AppDatabase providesAppDatabase() {
+        return Room.databaseBuilder(applicationContext,
                 AppDatabase.class, "commons-database").build();
     }
 }

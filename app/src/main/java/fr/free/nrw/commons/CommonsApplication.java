@@ -14,6 +14,7 @@ import androidx.annotation.NonNull;
 
 import com.facebook.drawee.backends.pipeline.Fresco;
 import com.facebook.imagepipeline.core.ImagePipelineConfig;
+import com.facebook.stetho.Stetho;
 import com.squareup.leakcanary.LeakCanary;
 import com.squareup.leakcanary.RefWatcher;
 
@@ -121,7 +122,7 @@ public class CommonsApplication extends Application {
         super.onCreate();
         INSTANCE = this;
         ACRA.init(this);
-
+        Stetho.initializeWithDefaults(this);
         ApplicationlessInjection
                 .getInstance(this)
                 .getCommonsApplicationComponent()

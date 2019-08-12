@@ -213,16 +213,6 @@ public class ContributionsFragment
             }
 
             @Override
-            public int getNumberOfContributions() {
-                return numberOfContributions;
-            }
-
-            @Override
-            public Contribution getContributionForPosition(int position) {
-                return (Contribution) contributionsPresenter.getItemAtPosition(position);
-            }
-
-            @Override
             public int findItemPositionWithId(String id) {
                 return contributionsPresenter.getChildPositionWithId(id);
             }

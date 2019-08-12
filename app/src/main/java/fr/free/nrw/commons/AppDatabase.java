@@ -8,7 +8,7 @@ import fr.free.nrw.commons.contributions.db.ContributionsItem;
 /**
  * The database class referred by room to construct the database
  */
-@Database(entities = {ContributionsItem.class}, version = 1)
+@Database(entities = {ContributionsItem.class}, version = 1, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     public abstract ContributionsDao contributionsDao();

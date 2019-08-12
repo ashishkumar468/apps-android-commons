@@ -243,7 +243,7 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment {
      */
     @Nullable
     private String findIdOfItemWithPosition(int position) {
-        if (contributionsItems.size() > position) {
+        if (contributionsItems.size() > position && position!=-1) {
             return contributionsItems.get(position).fileName;
         }
         return null;

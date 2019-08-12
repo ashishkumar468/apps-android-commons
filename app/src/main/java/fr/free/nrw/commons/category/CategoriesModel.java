@@ -282,9 +282,7 @@ public class CategoriesModel{
                     .concatWith(recentCategories());
         }
 
-        return mwApi
-                .searchCategories(query, SEARCH_CATS_LIMIT)
-                .map(s -> new CategoryItem(s, false));
+        return null;
     }
 
     /**

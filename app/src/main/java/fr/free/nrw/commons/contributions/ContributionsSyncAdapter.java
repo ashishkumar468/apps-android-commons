@@ -101,7 +101,7 @@ public class ContributionsSyncAdapter extends AbstractThreadedSyncAdapter {
         while (!done) {
 
             try {
-                result = mwApi.logEvents(user, lastModified, queryContinue, ABSOLUTE_CONTRIBUTIONS_LOAD_LIMIT);
+                result = mwApi.logEvents(user, "", queryContinue, ABSOLUTE_CONTRIBUTIONS_LOAD_LIMIT);
             } catch (IOException e) {
                 // There isn't really much we can do, eh?
                 // FIXME: Perhaps add EventLogging?
