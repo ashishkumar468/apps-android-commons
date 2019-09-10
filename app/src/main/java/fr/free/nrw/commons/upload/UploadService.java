@@ -13,6 +13,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import android.widget.Toast;
 
 import fr.free.nrw.commons.AppDatabase;
 import fr.free.nrw.commons.contributions.db.ContributionsItem;
@@ -37,11 +38,9 @@ import fr.free.nrw.commons.R;
 import fr.free.nrw.commons.auth.SessionManager;
 import fr.free.nrw.commons.contributions.Contribution;
 import fr.free.nrw.commons.contributions.MainActivity;
-import fr.free.nrw.commons.media.MediaClient;
 import fr.free.nrw.commons.mwapi.MediaWikiApi;
-import fr.free.nrw.commons.utils.CommonsDateUtil;
 import fr.free.nrw.commons.wikidata.WikidataEditService;
-import io.reactivex.Observable;
+import io.reactivex.Single;
 import io.reactivex.schedulers.Schedulers;
 import timber.log.Timber;
 
@@ -63,6 +62,7 @@ public class UploadService extends HandlerService<Contribution> {
     AppDatabase appDatabase;
     @Inject UploadClient uploadClient;
     @Inject MediaClient mediaClient;
+    @Inject ContributionDao contributionDao;
 
     private NotificationManagerCompat notificationManager;
     private NotificationCompat.Builder curNotification;
@@ -215,9 +215,9 @@ public class UploadService extends HandlerService<Contribution> {
             return;
         }
         String notificationTag = localUri.toString();
-        File file1;
+
         try {
-            file1 = new File(localUri.getPath());
+            File file1 = new File(localUri.getPath());
             fileInputStream = new FileInputStream(file1);
         } catch (FileNotFoundException e) {
             Timber.d("File not found");
@@ -240,8 +240,22 @@ public class UploadService extends HandlerService<Contribution> {
                 contribution
         );
 
-        Observable.fromCallable(() -> "Temp_" + contribution.hashCode() + filename)
-                .flatMap(stashFilename -> uploadClient.uploadFileToStash(getApplicationContext(), stashFilename, file1))
+        Single.fromCallable(() -> {
+            if (!mwApi.validateLogin()) {
+                // Need to revalidate!
+                if (sessionManager.revalidateAuthToken()) {
+                    Timber.d("Successfully revalidated token!");
+                } else {
+                    Timber.d("Unable to revalidate :(");
+                    stopForeground(true);
+                    sessionManager.forceLogin(UploadService.this);
+                    throw new RuntimeException(getString(R.string.authentication_failed));
+                }
+            }
+            return "Temp_" + contribution.hashCode() + filename;
+        }).flatMap(stashFilename -> mwApi.uploadFile(
+                stashFilename, fileInputStream, contribution.getDataLength(),
+                localUri, contribution.getContentProviderUri(), notificationUpdater))
                 .subscribeOn(Schedulers.io())
                 .observeOn(Schedulers.io())
                 .doFinally(() -> {
@@ -260,20 +274,22 @@ public class UploadService extends HandlerService<Contribution> {
 
                     Timber.d("Stash upload response 1 is %s", uploadStash.toString());
 
-                    String resultStatus = uploadStash.getResult();
+                    String resultStatus = uploadStash.getResultStatus();
                     if (!resultStatus.equals("Success")) {
                         Timber.d("Contribution upload failed. Wikidata entity won't be edited");
                         showFailedNotification(contribution);
-                        return Observable.never();
+                        return Single.never();
                     } else {
-                        Timber.d("making sure of uniqueness of name: %s", filename);
-                        String uniqueFilename = findUniqueFilename(filename);
-                        unfinishedUploads.add(uniqueFilename);
-                        return uploadClient.uploadFileFromStash(
-                                getApplicationContext(),
-                                contribution,
-                                uniqueFilename,
-                                uploadStash.getFilekey());
+                        synchronized (unfinishedUploads) {
+                            Timber.d("making sure of uniqueness of name: %s", filename);
+                            String uniqueFilename = findUniqueFilename(filename);
+                            unfinishedUploads.add(uniqueFilename);
+                            return mwApi.uploadFileFinalize(
+                                    uniqueFilename,
+                                    uploadStash.getFilekey(),
+                                    contribution.getPageContents(getApplicationContext()),
+                                    contribution.getEditSummary());
+                        }
                     }
                 })
                 .subscribe(uploadResult -> {
@@ -281,18 +297,20 @@ public class UploadService extends HandlerService<Contribution> {
 
                     notificationManager.cancel(notificationTag, NOTIFICATION_UPLOAD_IN_PROGRESS);
 
-                    String resultStatus = uploadResult.getResult();
+                    String resultStatus = uploadResult.getResultStatus();
                     if (!resultStatus.equals("Success")) {
                         Timber.d("Contribution upload failed. Wikidata entity won't be edited");
                         showFailedNotification(contribution);
                     } else {
-                        String canonicalFilename = "File:" + uploadResult.getFilename();
+                        String canonicalFilename = uploadResult.getCanonicalFilename();
                         Timber.d("Contribution upload success. Initiating Wikidata edit for entity id %s",
                                 contribution.getWikiDataEntityId());
                         wikidataEditService.createClaimWithLogging(contribution.getWikiDataEntityId(), canonicalFilename);
                         contribution.setFilename(canonicalFilename);
-                        contribution.setImageUrl(uploadResult.getImageinfo().getOriginalUrl());
+                        contribution.setImageUrl(uploadResult.getImageUrl());
                         contribution.setState(Contribution.STATE_COMPLETED);
+                        contribution.setDateUploaded(uploadResult.getDateUploaded());
+                        contributionDao.save(contribution);
                         contribution.setDateUploaded(CommonsDateUtil.getIso8601DateFormatShort()
                                 .parse(uploadResult.getImageinfo().getTimestamp()));
                         appDatabase.contributionsDao().insert(ContributionsItem.fromContribution(contribution));
@@ -333,7 +351,7 @@ public class UploadService extends HandlerService<Contribution> {
                     sequenceFileName = regexMatcher.replaceAll("$1 " + sequenceNumber + "$2");
                 }
             }
-            if (!mediaClient.checkPageExistsUsingTitle(sequenceFileName).blockingGet()
+            if (!mwApi.fileExistsWithName(sequenceFileName)
                     && !unfinishedUploads.contains(sequenceFileName)) {
                 break;
             }

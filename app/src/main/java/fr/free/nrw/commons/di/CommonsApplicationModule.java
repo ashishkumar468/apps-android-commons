@@ -6,7 +6,25 @@ import android.content.Context;
 import android.view.inputmethod.InputMethodManager;
 import androidx.collection.LruCache;
 import androidx.room.Room;
+
 import com.google.gson.Gson;
+
+import org.wikipedia.dataclient.WikiSite;
+
+import io.reactivex.Scheduler;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
+import org.wikipedia.dataclient.WikiSite;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.inject.Named;
+import javax.inject.Singleton;
+
+import androidx.collection.LruCache;
 import dagger.Module;
 import dagger.Provides;
 import fr.free.nrw.commons.AppDatabase;
@@ -80,7 +98,7 @@ public class CommonsApplicationModule {
 
     @Provides
     public AccountUtil providesAccountUtil(Context context) {
-        return new AccountUtil();
+        return new AccountUtil(context);
     }
 
     @Provides
@@ -183,14 +201,8 @@ public class CommonsApplicationModule {
 
     @Named(MAIN_THREAD)
     @Provides
-    public Scheduler providesMainThread() {
+    public Scheduler providesMainThread(){
         return AndroidSchedulers.mainThread();
-    }
-
-    @Named("username")
-    @Provides
-    public String provideLoggedInUsername() {
-        return AppAdapter.get().getUserName();
     }
 
     @Provides

@@ -27,6 +27,8 @@ import fr.free.nrw.commons.R;
 import fr.free.nrw.commons.contributions.db.ContributionsItem;
 import fr.free.nrw.commons.di.CommonsDaggerSupportFragment;
 import fr.free.nrw.commons.kvstore.JsonKvStore;
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.util.ArrayList;
 import java.util.List;
 import javax.inject.Inject;
@@ -178,7 +180,6 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment {
 
     /**
      * Responsible to set progress bar invisible and visible
-     *
      * @param shouldShow True when contributions list should be hidden.
      */
     public void showProgress(boolean shouldShow) {
@@ -186,7 +187,7 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment {
     }
 
     public void showNoContributionsUI(boolean shouldShow) {
-        noContributionsYet.setVisibility(shouldShow ? VISIBLE : GONE);
+        noContributionsYet.setVisibility(shouldShow?VISIBLE:GONE);
     }
 
     @Override
