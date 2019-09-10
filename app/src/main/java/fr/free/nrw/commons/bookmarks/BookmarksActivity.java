@@ -85,6 +85,7 @@ public class BookmarksActivity extends NavigationBaseActivity
     public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
         if (mediaDetails == null || !mediaDetails.isVisible()) {
             mediaDetails = new MediaDetailPagerFragment(false, true);
+            mediaDetails.setProvider(this);
             supportFragmentManager
                     .beginTransaction()
                     .hide(supportFragmentManager.getFragments().get(supportFragmentManager.getBackStackEntryCount()))

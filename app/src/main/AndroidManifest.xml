@@ -177,12 +177,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths" />
         </provider>
-        <provider
-            android:name=".contributions.ContributionsContentProvider"
-            android:authorities="${applicationId}.contributions.contentprovider"
-            android:exported="false"
-            android:label="@string/provider_contributions"
-            android:syncable="true" />
 
         <provider
             android:name=".category.CategoryContentProvider"

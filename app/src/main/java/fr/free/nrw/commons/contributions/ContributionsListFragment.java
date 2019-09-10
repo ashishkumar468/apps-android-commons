@@ -15,6 +15,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.lifecycle.LiveData;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -22,13 +23,10 @@ import androidx.recyclerview.widget.RecyclerView.LayoutManager;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import fr.free.nrw.commons.AppDatabase;
 import fr.free.nrw.commons.R;
-import fr.free.nrw.commons.contributions.ContributionsListAdapter.Callback;
 import fr.free.nrw.commons.contributions.db.ContributionsItem;
 import fr.free.nrw.commons.di.CommonsDaggerSupportFragment;
 import fr.free.nrw.commons.kvstore.JsonKvStore;
-import fr.free.nrw.commons.wikidata.WikidataClient;
 import java.util.ArrayList;
 import java.util.List;
 import javax.inject.Inject;
@@ -58,8 +56,6 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment {
 
     @Inject @Named("default_preferences") JsonKvStore kvStore;
     @Inject ContributionController controller;
-    @Inject
-    WikidataClient wikidataClient;
 
     private Animation fab_close;
     private Animation fab_open;
@@ -75,10 +71,6 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment {
     private String lastVisibleItemID;
 
     private int SPAN_COUNT=3;
-
-    @Inject
-    AppDatabase appDatabase;
-
 
     private List<ContributionsItem> contributionsItems=new ArrayList<>();
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -107,7 +99,7 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment {
     }
 
     private void fetchContributionsLiveData() {
-        appDatabase.contributionsDao().getAllLiveData().observe(this,
+        callback.getContributions().observe(this,
                 contributionsItems -> {
                     this.contributionsItems.clear();
                     this.contributionsItems.addAll(contributionsItems);
@@ -197,22 +189,6 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment {
         noContributionsYet.setVisibility(shouldShow ? VISIBLE : GONE);
     }
 
-    public void onDataSetChanged() {
-        if (null != adapter) {
-            adapter.notifyDataSetChanged();
-            //Restoring last visible item position in cases of orientation change
-            if (null != lastVisibleItemID) {
-                int itemPositionWithId = callback.findItemPositionWithId(lastVisibleItemID);
-                rvContributionsList.scrollToPosition(itemPositionWithId);
-                lastVisibleItemID = null;//Reset the lastVisibleItemID once we have used it
-            }
-        }
-    }
-
-    public interface SourceRefresher {
-        void refreshSource();
-    }
-
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -247,6 +223,11 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment {
             return contributionsItems.get(position).fileName;
         }
         return null;
+    }
+
+
+    public interface Callback extends ContributionsListAdapter.Callback{
+        LiveData<List<ContributionsItem>> getContributions();
     }
 
 }

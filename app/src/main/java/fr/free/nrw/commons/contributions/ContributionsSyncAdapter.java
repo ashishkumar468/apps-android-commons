@@ -32,16 +32,9 @@ import fr.free.nrw.commons.mwapi.MediaWikiApi;
 import timber.log.Timber;
 
 import static fr.free.nrw.commons.contributions.Contribution.STATE_COMPLETED;
-import static fr.free.nrw.commons.contributions.ContributionDao.Table.COLUMN_FILENAME;
-import static fr.free.nrw.commons.contributions.ContributionsContentProvider.BASE_URI;
 
 @SuppressWarnings("WeakerAccess")
 public class ContributionsSyncAdapter extends AbstractThreadedSyncAdapter {
-
-    private static final String[] existsQuery = {COLUMN_FILENAME};
-    private static final String existsSelection = COLUMN_FILENAME + " = ?";
-    private static final ContentValues[] EMPTY = {};
-    private static int COMMIT_THRESHOLD = 10;
 
     // Arbitrary limit to cap the number of contributions to ever load. This is a maximum built
     // into the app, rather than the user's setting. Also see Github issue #52.
@@ -60,28 +53,6 @@ public class ContributionsSyncAdapter extends AbstractThreadedSyncAdapter {
         super(context, autoInitialize);
     }
 
-    private boolean fileExists(ContentProviderClient client, String filename) {
-        if (filename == null) {
-            return false;
-        }
-        Cursor cursor = null;
-        try {
-            cursor = client.query(BASE_URI,
-                    existsQuery,
-                    existsSelection,
-                    new String[]{filename},
-                    ""
-            );
-            return cursor != null && cursor.getCount() != 0;
-        } catch (RemoteException e) {
-            throw new RuntimeException(e);
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
-    }
-
     @Override
     public void onPerformSync(Account account, Bundle bundle, String authority,
                               ContentProviderClient contentProviderClient, SyncResult syncResult) {
@@ -97,9 +68,7 @@ public class ContributionsSyncAdapter extends AbstractThreadedSyncAdapter {
         LogEventResult result;
         Boolean done = false;
         String queryContinue = null;
-        ContributionDao contributionDao = new ContributionDao(() -> contentProviderClient);
         while (!done) {
-
             try {
                 result = mwApi.logEvents(user, "", queryContinue, ABSOLUTE_CONTRIBUTIONS_LOAD_LIMIT);
             } catch (IOException e) {
@@ -121,19 +90,12 @@ public class ContributionsSyncAdapter extends AbstractThreadedSyncAdapter {
                     continue;
                 }
                 String filename = image.getFilename();
-                if (fileExists(contentProviderClient, filename)) {
-                    Timber.d("Skipping %s", filename);
-                    continue;
-                }
                 Date dateUpdated = image.getDateUpdated();
                 Contribution contribution = new Contribution(null, null, filename,
                         "", -1, dateUpdated, dateUpdated, user,
                         "", "");
                 contribution.setState(STATE_COMPLETED);
-                ContributionsItem contributionsItem=new ContributionsItem();
-                contributionsItem.fromContribution(contribution);
-                contributionsItems.add(contributionsItem);
-                imageValues.add(contributionDao.toContentValues(contribution));
+                contributionsItems.add(ContributionsItem.fromContribution(contribution));
             }
 
             appDatabase.contributionsDao().insertAll(contributionsItems);

@@ -167,6 +167,7 @@ public class SearchActivity extends NavigationBaseActivity implements MediaDetai
         if (mediaDetails == null || !mediaDetails.isVisible()) {
             // set isFeaturedImage true for featured images, to include author field on media detail
             mediaDetails = new MediaDetailPagerFragment(false, true);
+            mediaDetails.setProvider(this);
             FragmentManager supportFragmentManager = getSupportFragmentManager();
             supportFragmentManager
                     .beginTransaction()

@@ -23,4 +23,9 @@ public class WikiAccountAuthenticatorService extends CommonsDaggerService {
     public IBinder onBind(Intent intent) {
         return authenticator == null ? null : authenticator.getIBinder();
     }
+
+    @Override
+    protected void onHandleIntent(@Nullable Intent intent) {
+        //Do nothing
+    }
 }

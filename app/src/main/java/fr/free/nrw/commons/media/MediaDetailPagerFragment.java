@@ -6,11 +6,12 @@ import static fr.free.nrw.commons.Utils.handleWebUrl;
 
 import android.annotation.SuppressLint;
 import android.app.DownloadManager;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
+import android.os.Parcelable;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -18,8 +19,11 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentPagerAdapter;
 import androidx.fragment.app.FragmentStatePagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 import butterknife.BindView;
@@ -59,15 +63,35 @@ public class MediaDetailPagerFragment extends CommonsDaggerSupportFragment imple
     MediaDetailAdapter adapter;
     private Bookmark bookmark;
     private MediaDetailProvider provider;
+    private int lastSavedPageNumber=-1;
 
     public MediaDetailPagerFragment() {
         this(false, false);
+    }
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        getActivity().invalidateOptionsMenu();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (adapter != null && lastSavedPageNumber != -1 && adapter.getCount() > lastSavedPageNumber
+                && pager != null) {
+            pager.setCurrentItem(lastSavedPageNumber, true);
+        }
     }
 
     @SuppressLint("ValidFragment")
     public MediaDetailPagerFragment(Boolean editable, boolean isFeaturedImage) {
         this.editable = editable;
         this.isFeaturedImage = isFeaturedImage;
+    }
+
+    public void setProvider(@NonNull MediaDetailProvider provider) {
+        this.provider = provider;
     }
 
     @Override
@@ -79,25 +103,10 @@ public class MediaDetailPagerFragment extends CommonsDaggerSupportFragment imple
         pager.addOnPageChangeListener(this);
 
         adapter = new MediaDetailAdapter(getChildFragmentManager());
+        pager.setAdapter(adapter);
 
         if (savedInstanceState != null) {
-            final int pageNumber = savedInstanceState.getInt("current-page");
-            // Adapter doesn't seem to be loading immediately.
-            // Dear God, please forgive us for our sins
-            view.postDelayed(() -> {
-                pager.setAdapter(adapter);
-                pager.setCurrentItem(pageNumber, false);
-
-                if (getActivity() == null) {
-                    Timber.d("Returning as activity is destroyed!");
-                    return;
-                }
-
-                getActivity().supportInvalidateOptionsMenu();
-                adapter.notifyDataSetChanged();
-            }, 100);
-        } else {
-            pager.setAdapter(adapter);
+            lastSavedPageNumber=savedInstanceState.getInt("current-page");
         }
         return view;
     }
@@ -118,19 +127,6 @@ public class MediaDetailPagerFragment extends CommonsDaggerSupportFragment imple
             isFeaturedImage = savedInstanceState.getBoolean("isFeaturedImage");
         }
         setHasOptionsMenu(true);
-        initProvider();
-    }
-
-    /**
-     * initialise the provider, based on from where the fragment was started, as in from an activity
-     * or a fragment
-     */
-    private void initProvider() {
-        if (getParentFragment() != null) {
-            provider = (MediaDetailProvider) getParentFragment();
-        } else {
-            provider = (MediaDetailProvider) getActivity();
-        }
     }
 
     public MediaDetailProvider getMediaDetailProvider() {
@@ -297,8 +293,7 @@ public class MediaDetailPagerFragment extends CommonsDaggerSupportFragment imple
     }
 
     public void showImage(int i) {
-        Handler handler =  new Handler();
-        handler.postDelayed(() -> pager.setCurrentItem(i), 5);
+        pager.setCurrentItem(i,true);
     }
 
     /**
@@ -347,12 +342,6 @@ public class MediaDetailPagerFragment extends CommonsDaggerSupportFragment imple
     public void onPageScrollStateChanged(int i) {
     }
 
-    public void onDataSetChanged() {
-        if (null != adapter) {
-            adapter.notifyDataSetChanged();
-        }
-    }
-
     public interface MediaDetailProvider {
         Media getMediaAtPosition(int i);
 
@@ -360,7 +349,7 @@ public class MediaDetailPagerFragment extends CommonsDaggerSupportFragment imple
     }
 
     //FragmentStatePagerAdapter allows user to swipe across collection of images (no. of images undetermined)
-    private class MediaDetailAdapter extends FragmentStatePagerAdapter {
+    private class MediaDetailAdapter extends FragmentPagerAdapter {
 
         public MediaDetailAdapter(FragmentManager fm) {
             super(fm);
@@ -368,23 +357,11 @@ public class MediaDetailPagerFragment extends CommonsDaggerSupportFragment imple
 
         @Override
         public Fragment getItem(int i) {
-            if (i == 0) {
-                // See bug https://code.google.com/p/android/issues/detail?id=27526
-                if(getActivity() == null) {
-                    Timber.d("Skipping getItem. Returning as activity is destroyed!");
-                    return null;
-                }
-                pager.postDelayed(() -> getActivity().invalidateOptionsMenu(), 5);
-            }
             return MediaDetailFragment.forMedia(i, editable, isFeaturedImage);
         }
 
         @Override
         public int getCount() {
-            if (getActivity() == null) {
-                Timber.d("Skipping getCount. Returning as activity is destroyed!");
-                return 0;
-            }
             return provider.getTotalMediaCount();
         }
     }

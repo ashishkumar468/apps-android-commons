@@ -1,13 +1,14 @@
 package fr.free.nrw.commons.di;
 
+import android.app.IntentService;
 import android.app.Service;
 
 import dagger.android.AndroidInjector;
 
-public abstract class CommonsDaggerService extends Service {
+public abstract class CommonsDaggerService extends IntentService {
 
     public CommonsDaggerService() {
-        super();
+        super("CommonsDaggerService");
     }
 
     @Override

@@ -9,8 +9,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.database.DataSetObserver;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -23,6 +23,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentManager.OnBackStackChangedListener;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.lifecycle.LiveData;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import fr.free.nrw.commons.HandlerService;
@@ -32,8 +33,8 @@ import fr.free.nrw.commons.campaigns.Campaign;
 import fr.free.nrw.commons.campaigns.CampaignView;
 import fr.free.nrw.commons.campaigns.CampaignsPresenter;
 import fr.free.nrw.commons.campaigns.ICampaignsView;
-import fr.free.nrw.commons.contributions.ContributionsListAdapter.Callback;
-import fr.free.nrw.commons.contributions.ContributionsListFragment.SourceRefresher;
+import fr.free.nrw.commons.contributions.ContributionsListFragment.Callback;
+import fr.free.nrw.commons.contributions.db.ContributionsItem;
 import fr.free.nrw.commons.di.CommonsDaggerSupportFragment;
 import fr.free.nrw.commons.kvstore.JsonKvStore;
 import fr.free.nrw.commons.location.LatLng;
@@ -57,7 +58,7 @@ import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
-import java.util.ArrayList;
+import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Named;
 import timber.log.Timber;
@@ -67,18 +68,15 @@ public class ContributionsFragment
         implements
         MediaDetailProvider,
         OnBackStackChangedListener,
-        SourceRefresher,
         LocationUpdateListener,
         ICampaignsView, ContributionsContract.View {
     @Inject @Named("default_preferences") JsonKvStore store;
-    @Inject ContributionDao contributionDao;
     @Inject MediaWikiApi mediaWikiApi;
     @Inject NearbyController nearbyController;
     @Inject OkHttpJsonApiClient okHttpJsonApiClient;
     @Inject CampaignsPresenter presenter;
     @Inject LocationServiceManager locationManager;
 
-    private ArrayList<DataSetObserver> observersWaitingForLoad = new ArrayList<>();
     private UploadService uploadService;
     private boolean isUploadServiceConnected;
     private CompositeDisposable compositeDisposable = new CompositeDisposable();
@@ -120,6 +118,8 @@ public class ContributionsFragment
     };
     private boolean shouldShowMediaDetailsFragment;
     private int numberOfContributions;
+
+    private List<ContributionsItem> contributionItems;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -185,6 +185,9 @@ public class ContributionsFragment
                 }
             }, true);
 
+        contributionsPresenter.getContributions().observe(this,
+                contributionsItems -> ContributionsFragment.this.contributionItems=contributionsItems);
+
         return view;
     }
 
@@ -213,14 +216,16 @@ public class ContributionsFragment
             }
 
             @Override
-            public int findItemPositionWithId(String id) {
-                return contributionsPresenter.getChildPositionWithId(id);
+            public LiveData<List<ContributionsItem>> getContributions() {
+                return contributionsPresenter.getContributions();
             }
         });
+
 
         if(null==mediaDetailPagerFragment){
             mediaDetailPagerFragment=new MediaDetailPagerFragment();
         }
+        mediaDetailPagerFragment.setProvider(this);
     }
 
 
@@ -304,7 +309,6 @@ public class ContributionsFragment
         if (getActivity() != null) { // If fragment is attached to parent activity
             getActivity().bindService(uploadServiceIntent, uploadServiceConnection, Context.BIND_AUTO_CREATE);
             isUploadServiceConnected = true;
-            getActivity().getSupportLoaderManager().initLoader(0, null, contributionsPresenter);
         }
 
     }
@@ -315,26 +319,23 @@ public class ContributionsFragment
      * Called when user selects a contribution.
      */
     private void showDetail(int i) {
-        if (mediaDetailPagerFragment == null || !mediaDetailPagerFragment.isVisible()) {
+        if (mediaDetailPagerFragment == null) {
             mediaDetailPagerFragment = new MediaDetailPagerFragment();
+        }
+        if (!mediaDetailPagerFragment.isVisible()) {
             showMediaDetailPagerFragment();
         }
-        mediaDetailPagerFragment.showImage(i);
-    }
-
-    @Override
-    public void refreshSource() {
-        getActivity().getSupportLoaderManager().restartLoader(0, null, contributionsPresenter);
+        new Handler().post(() -> mediaDetailPagerFragment.showImage(i));
     }
 
     @Override
     public Media getMediaAtPosition(int i) {
-        return contributionsPresenter.getItemAtPosition(i);
+        return contributionItems.get(i).toContribution();
     }
 
     @Override
     public int getTotalMediaCount() {
-        return numberOfContributions;
+        return this.contributionItems.size();
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -403,6 +404,10 @@ public class ContributionsFragment
         }
 
         fetchCampaigns();
+    }
+
+    private void refreshSource() {
+        //TODO
     }
 
     private void checkPermissionsAndShowNearbyCardView() {
@@ -567,12 +572,6 @@ public class ContributionsFragment
     @Override
     public void setUploadCount(int count) {
         this.numberOfContributions=count;
-    }
-
-    @Override
-    public void onDataSetChanged() {
-        contributionsListFragment.onDataSetChanged();
-        mediaDetailPagerFragment.onDataSetChanged();
     }
 
     /**

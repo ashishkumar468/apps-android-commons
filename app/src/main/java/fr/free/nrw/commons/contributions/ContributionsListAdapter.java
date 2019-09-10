@@ -55,7 +55,5 @@ public class ContributionsListAdapter extends RecyclerView.Adapter<ContributionV
         void deleteUpload(Contribution contribution);
 
         void openMediaDetail(int contribution);
-
-        int findItemPositionWithId(String lastVisibleItemID);
     }
 }

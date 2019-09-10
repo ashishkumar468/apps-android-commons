@@ -2,9 +2,11 @@ package fr.free.nrw.commons.contributions.db;
 
 import android.net.Uri;
 import android.text.TextUtils;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.OnConflictStrategy;
 import androidx.room.PrimaryKey;
 import fr.free.nrw.commons.contributions.Contribution;
 import java.util.Date;
@@ -12,10 +14,7 @@ import java.util.Objects;
 
 @Entity(tableName = "contributions")
 public class ContributionsItem {
-
-    @PrimaryKey
-    public int _id;
-
+    @PrimaryKey @NonNull
     public String fileName;
 
     @ColumnInfo(name = "local_uri")
@@ -49,14 +48,6 @@ public class ContributionsItem {
     public String license;
 
     public String wikiDataEntityId;
-
-    public int get_id() {
-        return _id;
-    }
-
-    public void set_id(int _id) {
-        this._id = _id;
-    }
 
     public String getFileName() {
         return fileName;
@@ -118,7 +109,7 @@ public class ContributionsItem {
         return transferred;
     }
 
-    public void setTransferred(int transferred) {
+    public void setTransferred(long transferred) {
         this.transferred = transferred;
     }
 
@@ -189,34 +180,36 @@ public class ContributionsItem {
     /**
      * Transform a contribution to ContributionItem
      */
-    public void fromContribution(Contribution contribution) {
-        this.fileName = contribution.getFilename();
+    public static ContributionsItem fromContribution(Contribution contribution) {
+        ContributionsItem contributionsItem=new ContributionsItem();
+        contributionsItem.fileName = contribution.getFilename();
         if (null != contribution.getLocalUri()) {
-            this.localUri = contribution.getLocalUri().toString();
+            contributionsItem.localUri = contribution.getLocalUri().toString();
         }
 
         if (null != contribution.getImageUrl()) {
-            this.imageUrl = contribution.getImageUrl();
+            contributionsItem.imageUrl = contribution.getImageUrl();
         }
 
         if (null != contribution.getDateUploaded()) {
-            this.uploadDate = contribution.getDateUploaded().getTime();
+            contributionsItem.uploadDate = contribution.getDateUploaded().getTime();
         }
 
-        this.length = contribution.getDataLength();
+        contributionsItem.length = contribution.getDataLength();
 
-        this.timestamp = contribution.getDateCreated() == null ? System.currentTimeMillis()
+        contributionsItem.timestamp = contribution.getDateCreated() == null ? System.currentTimeMillis()
                 : contribution.getDateCreated().getTime();
-        this.state = contribution.getState();
-        this.transferred = contribution.getTransferred();
-        this.source = contribution.getSource();
-        this.description = contribution.getDescription();
-        this.creator = contribution.getCreator();
-        this.multiple = contribution.getMultiple() ? 1 : 0;
-        this.width = contribution.getWidth();
-        this.height = contribution.getHeight();
-        this.license = contribution.getLicense();
-        this.wikiDataEntityId = contribution.getWikiDataEntityId();
+        contributionsItem.state = contribution.getState();
+        contributionsItem.transferred = contribution.getTransferred();
+        contributionsItem.source = contribution.getSource();
+        contributionsItem.description = contribution.getDescription();
+        contributionsItem.creator = contribution.getCreator();
+        contributionsItem.multiple = contribution.getMultiple() ? 1 : 0;
+        contributionsItem.width = contribution.getWidth();
+        contributionsItem.height = contribution.getHeight();
+        contributionsItem.license = contribution.getLicense();
+        contributionsItem.wikiDataEntityId = contribution.getWikiDataEntityId();
+        return contributionsItem;
     }
 
     public Contribution toContribution() {

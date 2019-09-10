@@ -1,9 +1,12 @@
 package fr.free.nrw.commons.contributions;
 
 import android.database.Cursor;
+import androidx.lifecycle.LiveData;
 import androidx.loader.app.LoaderManager;
 import fr.free.nrw.commons.BasePresenter;
 import fr.free.nrw.commons.Media;
+import fr.free.nrw.commons.contributions.db.ContributionsItem;
+import java.util.List;
 
 /**
  * The contract for Contributions View & Presenter
@@ -20,16 +23,12 @@ public class ContributionsContract {
 
         void setUploadCount(int count);
 
-        void onDataSetChanged();
     }
 
-    public interface UserActionListener extends BasePresenter<ContributionsContract.View>,
-            LoaderManager.LoaderCallbacks<Cursor> {
-
-        Contribution getContributionsFromCursor(Cursor cursor);
+    public interface UserActionListener extends BasePresenter<ContributionsContract.View>{
 
         void deleteUpload(Contribution contribution);
 
-        Media getItemAtPosition(int i);
+        LiveData<List<ContributionsItem>> getContributions();
     }
 }

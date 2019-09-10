@@ -3,22 +3,27 @@ package fr.free.nrw.commons.upload;
 import android.annotation.SuppressLint;
 import android.app.PendingIntent;
 import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.HandlerThread;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
+import fr.free.nrw.commons.AppDatabase;
+import fr.free.nrw.commons.contributions.db.ContributionsItem;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,8 +36,6 @@ import fr.free.nrw.commons.HandlerService;
 import fr.free.nrw.commons.R;
 import fr.free.nrw.commons.auth.SessionManager;
 import fr.free.nrw.commons.contributions.Contribution;
-import fr.free.nrw.commons.contributions.ContributionDao;
-import fr.free.nrw.commons.contributions.ContributionsContentProvider;
 import fr.free.nrw.commons.contributions.MainActivity;
 import fr.free.nrw.commons.media.MediaClient;
 import fr.free.nrw.commons.mwapi.MediaWikiApi;
@@ -56,7 +59,8 @@ public class UploadService extends HandlerService<Contribution> {
     @Inject MediaWikiApi mwApi;
     @Inject WikidataEditService wikidataEditService;
     @Inject SessionManager sessionManager;
-    @Inject ContributionDao contributionDao;
+    @Inject
+    AppDatabase appDatabase;
     @Inject UploadClient uploadClient;
     @Inject MediaClient mediaClient;
 
@@ -88,12 +92,14 @@ public class UploadService extends HandlerService<Contribution> {
 
         String notificationProgressTitle;
         String notificationFinishingTitle;
+        private ContributionsItem contributionsItem;
 
         NotificationUpdateProgressListener(String notificationTag, String notificationProgressTitle, String notificationFinishingTitle, Contribution contribution) {
             this.notificationTag = notificationTag;
             this.notificationProgressTitle = notificationProgressTitle;
             this.notificationFinishingTitle = notificationFinishingTitle;
             this.contribution = contribution;
+            this.contributionsItem=ContributionsItem.fromContribution(contribution);
         }
 
         @Override
@@ -102,7 +108,7 @@ public class UploadService extends HandlerService<Contribution> {
             if (!notificationTitleChanged) {
                 curNotification.setContentTitle(notificationProgressTitle);
                 notificationTitleChanged = true;
-                contribution.setState(Contribution.STATE_IN_PROGRESS);
+                contributionsItem.setState(Contribution.STATE_IN_PROGRESS);
             }
             if (transferred == total) {
                 // Completed!
@@ -114,8 +120,8 @@ public class UploadService extends HandlerService<Contribution> {
             }
             notificationManager.notify(notificationTag, NOTIFICATION_UPLOAD_IN_PROGRESS, curNotification.build());
 
-            contribution.setTransferred(transferred);
-            contributionDao.save(contribution);
+            contributionsItem.setTransferred(transferred);
+            appDatabase.contributionsDao().insert(contributionsItem);
         }
 
     }
@@ -153,7 +159,7 @@ public class UploadService extends HandlerService<Contribution> {
 
                 contribution.setState(Contribution.STATE_QUEUED);
                 contribution.setTransferred(0);
-                contributionDao.save(contribution);
+                appDatabase.contributionsDao().insert(ContributionsItem.fromContribution(contribution));
                 toUpload++;
                 if (curNotification != null && toUpload != 1) {
                     curNotification.setContentText(getResources().getQuantityString(R.plurals.uploads_pending_notification_indicator, toUpload, toUpload));
@@ -171,21 +177,21 @@ public class UploadService extends HandlerService<Contribution> {
     private boolean freshStart = true;
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
+    protected void onHandleIntent(@Nullable Intent intent) {
+        //Transform all the queued or in progress ones to failed state
         if (ACTION_START_SERVICE.equals(intent.getAction()) && freshStart) {
-            ContentValues failedValues = new ContentValues();
-            failedValues.put(ContributionDao.Table.COLUMN_STATE, Contribution.STATE_FAILED);
+            List<Integer> notCompleteStates=new ArrayList<>();
+            notCompleteStates.add(Contribution.STATE_QUEUED);
+            notCompleteStates.add(Contribution.STATE_IN_PROGRESS);
+            List<ContributionsItem> allWithState = appDatabase.contributionsDao()
+                    .getAllWithState(notCompleteStates);
+            for (ContributionsItem contributionsItem : allWithState) {
+                contributionsItem.setState(Contribution.STATE_FAILED);
+            }
 
-            int updated = getContentResolver().update(ContributionsContentProvider.BASE_URI,
-                    failedValues,
-                    ContributionDao.Table.COLUMN_STATE + " = ? OR " + ContributionDao.Table.COLUMN_STATE + " = ?",
-                    new String[]{ String.valueOf(Contribution.STATE_QUEUED), String.valueOf(Contribution.STATE_IN_PROGRESS) }
-            );
-            Timber.d("Set %d uploads to failed", updated);
-            Timber.d("Flags is %d id is %d", flags, startId);
+            appDatabase.contributionsDao().insertAll(allWithState);
             freshStart = false;
         }
-        return START_REDELIVER_INTENT;
     }
 
     @SuppressLint("StringFormatInvalid")
@@ -289,7 +295,7 @@ public class UploadService extends HandlerService<Contribution> {
                         contribution.setState(Contribution.STATE_COMPLETED);
                         contribution.setDateUploaded(CommonsDateUtil.getIso8601DateFormatShort()
                                 .parse(uploadResult.getImageinfo().getTimestamp()));
-                        contributionDao.save(contribution);
+                        appDatabase.contributionsDao().insert(ContributionsItem.fromContribution(contribution));
                     }
                 }, throwable -> {
                     Timber.w(throwable, "Exception during upload");
@@ -308,7 +314,7 @@ public class UploadService extends HandlerService<Contribution> {
         notificationManager.notify(contribution.getLocalUri().toString(), NOTIFICATION_UPLOAD_FAILED, curNotification.build());
 
         contribution.setState(Contribution.STATE_FAILED);
-        contributionDao.save(contribution);
+        appDatabase.contributionsDao().insert(ContributionsItem.fromContribution(contribution));
     }
 
     private String findUniqueFilename(String fileName) throws IOException {
