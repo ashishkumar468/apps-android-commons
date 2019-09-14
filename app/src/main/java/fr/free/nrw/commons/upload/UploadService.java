@@ -7,16 +7,24 @@ import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.HandlerThread;
 import android.widget.Toast;
-
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-import android.widget.Toast;
-
 import fr.free.nrw.commons.AppDatabase;
+import fr.free.nrw.commons.BuildConfig;
+import fr.free.nrw.commons.CommonsApplication;
+import fr.free.nrw.commons.HandlerService;
+import fr.free.nrw.commons.R;
+import fr.free.nrw.commons.auth.SessionManager;
+import fr.free.nrw.commons.contributions.Contribution;
+import fr.free.nrw.commons.contributions.MainActivity;
 import fr.free.nrw.commons.contributions.db.ContributionsItem;
+import fr.free.nrw.commons.mwapi.MediaWikiApi;
+import fr.free.nrw.commons.utils.CommonsDateUtil;
+import fr.free.nrw.commons.wikidata.WikidataEditService;
+import io.reactivex.Single;
+import io.reactivex.schedulers.Schedulers;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -28,20 +36,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.inject.Inject;
-
-import fr.free.nrw.commons.BuildConfig;
-import fr.free.nrw.commons.CommonsApplication;
-import fr.free.nrw.commons.HandlerService;
-import fr.free.nrw.commons.R;
-import fr.free.nrw.commons.auth.SessionManager;
-import fr.free.nrw.commons.contributions.Contribution;
-import fr.free.nrw.commons.contributions.MainActivity;
-import fr.free.nrw.commons.mwapi.MediaWikiApi;
-import fr.free.nrw.commons.wikidata.WikidataEditService;
-import io.reactivex.Single;
-import io.reactivex.schedulers.Schedulers;
 import timber.log.Timber;
 
 public class UploadService extends HandlerService<Contribution> {
@@ -60,9 +55,6 @@ public class UploadService extends HandlerService<Contribution> {
     @Inject SessionManager sessionManager;
     @Inject
     AppDatabase appDatabase;
-    @Inject UploadClient uploadClient;
-    @Inject MediaClient mediaClient;
-    @Inject ContributionDao contributionDao;
 
     private NotificationManagerCompat notificationManager;
     private NotificationCompat.Builder curNotification;
@@ -310,10 +302,10 @@ public class UploadService extends HandlerService<Contribution> {
                         contribution.setImageUrl(uploadResult.getImageUrl());
                         contribution.setState(Contribution.STATE_COMPLETED);
                         contribution.setDateUploaded(uploadResult.getDateUploaded());
-                        contributionDao.save(contribution);
                         contribution.setDateUploaded(CommonsDateUtil.getIso8601DateFormatShort()
-                                .parse(uploadResult.getImageinfo().getTimestamp()));
-                        appDatabase.contributionsDao().insert(ContributionsItem.fromContribution(contribution));
+                                .parse(uploadResult.getDateUploaded().toString()));
+                        appDatabase.contributionsDao()
+                                .insert(ContributionsItem.fromContribution(contribution));
                     }
                 }, throwable -> {
                     Timber.w(throwable, "Exception during upload");

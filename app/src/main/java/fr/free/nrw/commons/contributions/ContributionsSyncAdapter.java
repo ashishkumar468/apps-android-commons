@@ -61,7 +61,7 @@ public class ContributionsSyncAdapter extends AbstractThreadedSyncAdapter {
                         .getApplicationContext())
                 .getCommonsApplicationComponent()
                 .inject(this);
-        // This code is fraught with possibilities of race conditions, but lalalalala I can't hear you!
+       /* // This code is fraught with possibilities of race conditions, but lalalalala I can't hear you!
         String user = account.name;
         String lastModified = defaultKvStore.getString("lastSyncTimestamp", "");
         Date curTime = new Date();
@@ -105,6 +105,6 @@ public class ContributionsSyncAdapter extends AbstractThreadedSyncAdapter {
             }
         }
         defaultKvStore.putString("lastSyncTimestamp", DateUtil.iso8601DateFormat(curTime));
-        Timber.d("Oh hai, everyone! Look, a kitty!");
+        Timber.d("Oh hai, everyone! Look, a kitty!");*/
     }
 }

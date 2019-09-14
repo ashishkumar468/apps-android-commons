@@ -9,6 +9,7 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.os.RemoteException;
 
+import fr.free.nrw.commons.AppDatabase;
 import java.io.IOException;
 
 import javax.inject.Inject;
@@ -16,7 +17,6 @@ import javax.inject.Inject;
 import fr.free.nrw.commons.BuildConfig;
 import fr.free.nrw.commons.auth.SessionManager;
 import fr.free.nrw.commons.contributions.Contribution;
-import fr.free.nrw.commons.contributions.ContributionDao;
 import fr.free.nrw.commons.di.ApplicationlessInjection;
 import fr.free.nrw.commons.mwapi.MediaWikiApi;
 import timber.log.Timber;
@@ -24,10 +24,12 @@ import timber.log.Timber;
 public class ModificationsSyncAdapter extends AbstractThreadedSyncAdapter {
 
     @Inject MediaWikiApi mwApi;
-    @Inject ContributionDao contributionDao;
     @Inject ModifierSequenceDao modifierSequenceDao;
     @Inject
     SessionManager sessionManager;
+
+    @Inject
+    AppDatabase appDatabase;
 
     public ModificationsSyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
