@@ -22,7 +22,6 @@ import fr.free.nrw.commons.theme.NavigationBaseActivity;
 
 public class BookmarksActivity extends NavigationBaseActivity
         implements FragmentManager.OnBackStackChangedListener,
-        MediaDetailPagerFragment.MediaDetailProvider,
         AdapterView.OnItemClickListener {
 
     private FragmentManager supportFragmentManager;
@@ -105,34 +104,5 @@ public class BookmarksActivity extends NavigationBaseActivity
         if (mediaDetails!=null){
             mediaDetails.notifyDataSetChanged();
         }
-    }
-
-    /**
-     * This method is called mediaDetailPagerFragment. It returns the Media Object at that Index
-     * @param i It is the index of which media object is to be returned which is same as
-     *          current index of viewPager.
-     * @return Media Object
-     */
-    @Override
-    public Media getMediaAtPosition(int i) {
-        if (adapter.getMediaAdapter() == null) {
-            // not yet ready to return data
-            return null;
-        } else {
-            return (Media) adapter.getMediaAdapter().getItem(i);
-        }
-    }
-
-    /**
-     * This method is called on from getCount of MediaDetailPagerFragment
-     * The viewpager will contain same number of media items as that of media elements in adapter.
-     * @return Total Media count in the adapter
-     */
-    @Override
-    public int getTotalMediaCount() {
-        if (adapter.getMediaAdapter() == null) {
-            return 0;
-        }
-        return adapter.getMediaAdapter().getCount();
     }
 }

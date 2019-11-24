@@ -4,6 +4,8 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.Parcel;
 
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
 import org.apache.commons.lang3.StringUtils;
 import org.wikipedia.util.DateUtil;
 
@@ -23,6 +25,7 @@ import fr.free.nrw.commons.utils.ConfigUtils;
 
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 
+@Entity(tableName = "contributions")
 public class  Contribution extends Media {
 
     //{{According to EXIF data|2009-01-09}}
@@ -57,16 +60,26 @@ public class  Contribution extends Media {
     public static final String SOURCE_GALLERY = "gallery";
     public static final String SOURCE_EXTERNAL = "external";
 
-    private Uri contentUri;
-    private String source;
-    private String editSummary;
-    private int state;
-    private long transferred;
-    private String decimalCoords;
-    private boolean isMultiple;
-    private String wikiDataEntityId;
-    private Uri contentProviderUri;
-    private String dateCreatedSource;
+    @ColumnInfo(name = "content_uri")
+    public Uri contentUri;
+    @ColumnInfo(name = "source")
+    public String source;
+    @ColumnInfo(name = "edit_summary")
+    public String editSummary;
+    @ColumnInfo(name = "state")
+    public int state;
+    @ColumnInfo(name = "transferred")
+    public long transferred;
+    @ColumnInfo(name = "decimal_coordinates")
+    public String decimalCoords;
+    @ColumnInfo(name = "is_multiple")
+    public boolean isMultiple;
+    @ColumnInfo(name = "wikidata_entity_id")
+    public String wikiDataEntityId;
+    @ColumnInfo(name = "content_provider_uri")
+    public Uri contentProviderUri;
+    @ColumnInfo(name = "date_created_source")
+    public String dateCreatedSource;
 
     public Contribution(Uri contentUri, String filename, Uri localUri, String imageUrl, Date dateCreated,
                         int state, long dataLength, Date dateUploaded, long transferred,

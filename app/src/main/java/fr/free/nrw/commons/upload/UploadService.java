@@ -3,7 +3,6 @@ package fr.free.nrw.commons.upload;
 import android.annotation.SuppressLint;
 import android.app.PendingIntent;
 import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -17,8 +16,9 @@ import fr.free.nrw.commons.R;
 import fr.free.nrw.commons.auth.SessionManager;
 import fr.free.nrw.commons.contributions.Contribution;
 import fr.free.nrw.commons.contributions.ContributionDao;
-import fr.free.nrw.commons.contributions.ContributionsContentProvider;
 import fr.free.nrw.commons.contributions.MainActivity;
+import fr.free.nrw.commons.db.AppDatabase;
+import fr.free.nrw.commons.di.ApplicationlessInjection;
 import fr.free.nrw.commons.media.MediaClient;
 import fr.free.nrw.commons.utils.CommonsDateUtil;
 import fr.free.nrw.commons.wikidata.WikidataEditService;
@@ -27,6 +27,7 @@ import io.reactivex.schedulers.Schedulers;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,10 +44,12 @@ public class UploadService extends HandlerService<Contribution> {
     public static final String EXTRA_SOURCE = EXTRA_PREFIX + ".source";
     public static final String EXTRA_FILES = EXTRA_PREFIX + ".files";
     public static final String EXTRA_CAMPAIGN = EXTRA_PREFIX + ".campaign";
+    private final ContributionDao contributionDao;
 
     @Inject WikidataEditService wikidataEditService;
     @Inject SessionManager sessionManager;
-    @Inject ContributionDao contributionDao;
+    @Inject
+    AppDatabase appDatabase;
     @Inject UploadClient uploadClient;
     @Inject MediaClient mediaClient;
 
@@ -68,6 +71,11 @@ public class UploadService extends HandlerService<Contribution> {
 
     public UploadService() {
         super("UploadService");
+        ApplicationlessInjection
+                .getInstance(this)
+                .getCommonsApplicationComponent()
+                .inject(this);
+        contributionDao=appDatabase.contributionDao();
     }
 
     protected class NotificationUpdateProgressListener{
@@ -162,16 +170,15 @@ public class UploadService extends HandlerService<Contribution> {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (ACTION_START_SERVICE.equals(intent.getAction()) && freshStart) {
-            ContentValues failedValues = new ContentValues();
-            failedValues.put(ContributionDao.Table.COLUMN_STATE, Contribution.STATE_FAILED);
 
-            int updated = getContentResolver().update(ContributionsContentProvider.BASE_URI,
-                    failedValues,
-                    ContributionDao.Table.COLUMN_STATE + " = ? OR " + ContributionDao.Table.COLUMN_STATE + " = ?",
-                    new String[]{ String.valueOf(Contribution.STATE_QUEUED), String.valueOf(Contribution.STATE_IN_PROGRESS) }
-            );
-            Timber.d("Set %d uploads to failed", updated);
-            Timber.d("Flags is %d id is %d", flags, startId);
+            List<Contribution> contributionsWithState = contributionDao.getContributionsWithState(
+                    new String[]{String.valueOf(Contribution.STATE_QUEUED),
+                            String.valueOf(Contribution.STATE_IN_PROGRESS)});
+            for (Contribution contribution : contributionsWithState) {
+                contribution.setState(Contribution.STATE_FAILED);
+            }
+
+            contributionDao.update(contributionsWithState);
             freshStart = false;
         }
         return START_REDELIVER_INTENT;

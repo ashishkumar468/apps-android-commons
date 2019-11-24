@@ -7,6 +7,10 @@ import android.os.Parcelable;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+import java.util.Map.Entry;
 import org.apache.commons.lang3.StringUtils;
 import org.wikipedia.dataclient.mwapi.MwQueryPage;
 import org.wikipedia.gallery.ExtMetadata;
@@ -27,46 +31,57 @@ import fr.free.nrw.commons.location.LatLng;
 import fr.free.nrw.commons.utils.CommonsDateUtil;
 import fr.free.nrw.commons.utils.MediaDataExtractorUtil;
 
+@Entity(tableName = "media")
 public class Media implements Parcelable {
 
     public static final Media EMPTY = new Media("");
-    public static Creator<Media> CREATOR = new Creator<Media>() {
-        @Override
-        public Media createFromParcel(Parcel parcel) {
-            return new Media(parcel);
-        }
-
-        @Override
-        public Media[] newArray(int i) {
-            return new Media[0];
-        }
-    };
 
     // Primary metadata fields
-    protected Uri localUri;
-    private String thumbUrl;
-    protected String imageUrl;
-    protected String filename;
-    protected String description; // monolingual description on input...
-    protected String discussion;
-    protected long dataLength;
-    protected Date dateCreated;
-    protected @Nullable Date dateUploaded;
-    protected int width;
-    protected int height;
-    protected String license;
-    protected String licenseUrl;
-    protected String creator;
-    protected ArrayList<String> categories; // as loaded at runtime?
-    protected boolean requestedDeletion;
-    private Map<String, String> descriptions; // multilingual descriptions as loaded
-    private HashMap<String, Object> tags = new HashMap<>();
-    private @Nullable LatLng coordinates;
+    @ColumnInfo(name="local_uri")
+    public Uri localUri;
+    @ColumnInfo(name="thumbnail_url")
+    public String thumbUrl;
+    @ColumnInfo(name = "image_url")
+    public String imageUrl;
+    @PrimaryKey
+    @NonNull
+    @ColumnInfo(name="file_name")
+    public String filename;
+    @ColumnInfo(name = "description")
+    public String description; // monolingual description on input...
+    @ColumnInfo(name = "discussion")
+    public String discussion;
+    @ColumnInfo(name = "data_length")
+    public long dataLength;
+    @ColumnInfo(name = "date_created")
+    public Date dateCreated;
+    @ColumnInfo(name = "date_uploaded")
+    public @Nullable Date dateUploaded;
+    @ColumnInfo(name="width")
+    public int width;
+    @ColumnInfo(name = "height")
+    public int height;
+    @ColumnInfo(name = "license")
+    public String license;
+    @ColumnInfo(name = "license_url")
+    public String licenseUrl;
+    @ColumnInfo(name = "creator")
+    public String creator;
+    @ColumnInfo(name="categories")
+    public ArrayList<String> categories; // as loaded at runtime?
+    @ColumnInfo(name = "requested_deletion")
+    public boolean requestedDeletion;
+    @ColumnInfo(name = "descriptions")
+    public Map<String, String> descriptions; // multilingual descriptions as loaded
+    @ColumnInfo(name = "tags")
+    public Map<String, String> tags = new HashMap<>();
+    @ColumnInfo(name = "coordinates")
+    public @Nullable LatLng coordinates;
 
     /**
-     * Provides local constructor
+     * Provides local constructor, public so that room can use it
      */
-    protected Media() {
+    public Media() {
         this.categories = new ArrayList<>();
         this.descriptions = new HashMap<>();
     }
@@ -106,27 +121,6 @@ public class Media implements Parcelable {
         this.creator = creator;
         this.categories = new ArrayList<>();
         this.descriptions = new HashMap<>();
-    }
-
-    @SuppressWarnings("unchecked")
-    public Media(Parcel in) {
-        localUri = in.readParcelable(Uri.class.getClassLoader());
-        thumbUrl = in.readString();
-        imageUrl = in.readString();
-        filename = in.readString();
-        description = in.readString();
-        dataLength = in.readLong();
-        dateCreated = (Date) in.readSerializable();
-        dateUploaded = (Date) in.readSerializable();
-        creator = in.readString();
-        tags = (HashMap<String, Object>) in.readSerializable();
-        width = in.readInt();
-        height = in.readInt();
-        license = in.readString();
-        if (categories != null) {
-            in.readStringList(categories);
-        }
-        descriptions = in.readHashMap(ClassLoader.getSystemClassLoader());
     }
 
     /**
@@ -204,7 +198,7 @@ public class Media implements Parcelable {
      * @param key Media key
      * @param value Media value
      */
-    public void setTag(String key, Object value) {
+    public void setTag(String key, String value) {
         tags.put(key, value);
     }
 
@@ -486,38 +480,11 @@ public class Media implements Parcelable {
     }
 
     /**
-     * Method of Parcelable interface
-     * @return zero
-     */
-    @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    /**
      * Creates a way to transfer information between two or more
      * activities.
      * @param parcel Instance of Parcel
      * @param flags Parcel flag
      */
-    @Override
-    public void writeToParcel(Parcel parcel, int flags) {
-        parcel.writeParcelable(localUri, flags);
-        parcel.writeString(thumbUrl);
-        parcel.writeString(imageUrl);
-        parcel.writeString(filename);
-        parcel.writeString(description);
-        parcel.writeLong(dataLength);
-        parcel.writeSerializable(dateCreated);
-        parcel.writeSerializable(dateUploaded);
-        parcel.writeString(creator);
-        parcel.writeSerializable(tags);
-        parcel.writeInt(width);
-        parcel.writeInt(height);
-        parcel.writeString(license);
-        parcel.writeStringList(categories);
-        parcel.writeMap(descriptions);
-    }
 
     /**
      * Set requested deletion to true
@@ -542,4 +509,89 @@ public class Media implements Parcelable {
     public void setLicense(String license) {
         this.license = license;
     }
+
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeParcelable(this.localUri, flags);
+        dest.writeString(this.thumbUrl);
+        dest.writeString(this.imageUrl);
+        dest.writeString(this.filename);
+        dest.writeString(this.description);
+        dest.writeString(this.discussion);
+        dest.writeLong(this.dataLength);
+        dest.writeLong(this.dateCreated != null ? this.dateCreated.getTime() : -1);
+        dest.writeLong(this.dateUploaded != null ? this.dateUploaded.getTime() : -1);
+        dest.writeInt(this.width);
+        dest.writeInt(this.height);
+        dest.writeString(this.license);
+        dest.writeString(this.licenseUrl);
+        dest.writeString(this.creator);
+        dest.writeStringList(this.categories);
+        dest.writeByte(this.requestedDeletion ? (byte) 1 : (byte) 0);
+        dest.writeInt(this.descriptions.size());
+        for (Entry<String, String> entry : this.descriptions.entrySet()) {
+            dest.writeString(entry.getKey());
+            dest.writeString(entry.getValue());
+        }
+        dest.writeInt(this.tags.size());
+        for (Entry<String, String> entry : this.tags.entrySet()) {
+            dest.writeString(entry.getKey());
+            dest.writeString(entry.getValue());
+        }
+        dest.writeParcelable(this.coordinates, flags);
+    }
+
+    protected Media(Parcel in) {
+        this.localUri = in.readParcelable(Uri.class.getClassLoader());
+        this.thumbUrl = in.readString();
+        this.imageUrl = in.readString();
+        this.filename = in.readString();
+        this.description = in.readString();
+        this.discussion = in.readString();
+        this.dataLength = in.readLong();
+        long tmpDateCreated = in.readLong();
+        this.dateCreated = tmpDateCreated == -1 ? null : new Date(tmpDateCreated);
+        long tmpDateUploaded = in.readLong();
+        this.dateUploaded = tmpDateUploaded == -1 ? null : new Date(tmpDateUploaded);
+        this.width = in.readInt();
+        this.height = in.readInt();
+        this.license = in.readString();
+        this.licenseUrl = in.readString();
+        this.creator = in.readString();
+        this.categories = in.createStringArrayList();
+        this.requestedDeletion = in.readByte() != 0;
+        int descriptionsSize = in.readInt();
+        this.descriptions = new HashMap<String, String>(descriptionsSize);
+        for (int i = 0; i < descriptionsSize; i++) {
+            String key = in.readString();
+            String value = in.readString();
+            this.descriptions.put(key, value);
+        }
+        int tagsSize = in.readInt();
+        this.tags = new HashMap<>(tagsSize);
+        for (int i = 0; i < tagsSize; i++) {
+            String key = in.readString();
+            String value = in.readString();
+            this.tags.put(key, value);
+        }
+        this.coordinates = in.readParcelable(LatLng.class.getClassLoader());
+    }
+
+    public static final Creator<Media> CREATOR = new Creator<Media>() {
+        @Override
+        public Media createFromParcel(Parcel source) {
+            return new Media(source);
+        }
+
+        @Override
+        public Media[] newArray(int size) {
+            return new Media[size];
+        }
+    };
 }

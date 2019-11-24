@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
  * Represents search screen of this app
  */
 
-public class SearchActivity extends NavigationBaseActivity implements MediaDetailPagerFragment.MediaDetailProvider{
+public class SearchActivity extends NavigationBaseActivity{
 
     @BindView(R.id.toolbar_search) Toolbar toolbar;
     @BindView(R.id.searchHistoryContainer) FrameLayout searchHistoryContainer;
@@ -124,23 +124,6 @@ public class SearchActivity extends NavigationBaseActivity implements MediaDetai
                             }
                         }
                 ));
-    }
-
-    /**
-     * returns Media Object at position
-     * @param i position of Media in the imagesRecyclerView adapter.
-     */
-    @Override
-    public Media getMediaAtPosition(int i) {
-        return searchImageFragment.getImageAtPosition(i);
-    }
-
-    /**
-     * returns total number of images present in the imagesRecyclerView adapter.
-     */
-    @Override
-    public int getTotalMediaCount() {
-       return searchImageFragment.getTotalImagesCount();
     }
 
     /**

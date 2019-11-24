@@ -1,7 +1,9 @@
 package fr.free.nrw.commons.contributions;
 
-import android.database.Cursor;
+import androidx.lifecycle.LiveData;
+import fr.free.nrw.commons.db.AppDatabase;
 import fr.free.nrw.commons.kvstore.JsonKvStore;
+import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Named;
 
@@ -16,9 +18,9 @@ class ContributionsLocalDataSource {
     @Inject
     public ContributionsLocalDataSource(
             @Named("default_preferences") JsonKvStore defaultKVStore,
-            ContributionDao contributionDao) {
+            AppDatabase appDatabase) {
         this.defaultKVStore = defaultKVStore;
-        this.contributionsDao = contributionDao;
+        this.contributionsDao=appDatabase.contributionDao();
     }
 
     /**
@@ -29,19 +31,14 @@ class ContributionsLocalDataSource {
     }
 
     /**
-     * Get contribution object from cursor
-     * @param cursor
-     * @return
-     */
-    public Contribution getContributionFromCursor(Cursor cursor) {
-        return contributionsDao.fromCursor(cursor);
-    }
-
-    /**
      * Remove a contribution from the contributions table
      * @param contribution
      */
     public void deleteContribution(Contribution contribution) {
         contributionsDao.delete(contribution);
+    }
+
+    public LiveData<List<Contribution>> getAll() {
+        return contributionsDao.getAllLiveData();
     }
 }

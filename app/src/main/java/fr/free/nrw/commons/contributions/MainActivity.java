@@ -20,6 +20,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentPagerAdapter;
+import androidx.lifecycle.ViewModelProviders;
 import androidx.viewpager.widget.ViewPager;
 
 import com.google.android.material.tabs.TabLayout;
@@ -67,6 +68,8 @@ public class MainActivity extends NavigationBaseActivity implements FragmentMana
     @Inject
     QuizChecker quizChecker;
 
+    @Inject ContributionsRepository contributionsRepository;
+
 
     public Intent uploadServiceIntent;
 
@@ -80,6 +83,7 @@ public class MainActivity extends NavigationBaseActivity implements FragmentMana
 
     private MenuItem notificationsMenuItem;
     private TextView notificationCount;
+    private ContributionsViewModel contributionsViewModel;
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -90,6 +94,7 @@ public class MainActivity extends NavigationBaseActivity implements FragmentMana
         setTitle(getString(R.string.navigation_item_home)); // Should I create a new string variable with another name instead?
 
         initMain();
+        initContributionsViewModel();
 
         if (savedInstanceState != null ) {
             onOrientationChanged = true; // Will be used in nearby fragment to determine significant update of map
@@ -99,6 +104,11 @@ public class MainActivity extends NavigationBaseActivity implements FragmentMana
                 ((NearbyFragment)contributionsActivityPagerAdapter.getItem(1)).onTabSelected(onOrientationChanged);
             }*/
         }
+    }
+
+    private void initContributionsViewModel() {
+        contributionsViewModel=ViewModelProviders.of(this).get(ContributionsViewModel.class);
+        contributionsViewModel.setRepository(contributionsRepository);//This must be there until we start injecting ViewModels
     }
 
     @Override

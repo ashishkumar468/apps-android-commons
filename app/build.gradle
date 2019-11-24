@@ -95,6 +95,13 @@ dependencies {
 
     //swipe_layout
     implementation 'com.daimajia.swipelayout:library:1.2.0@aar'
+
+    //Room
+    implementation "android.arch.persistence.room:runtime:2.1.0-alpha03"
+    kapt "android.arch.persistence.room:compiler:2.1.0-alpha03"
+    def work_version = "2.2.0"
+    implementation "androidx.work:work-runtime:$work_version"
+    implementation 'com.facebook.stetho:stetho-okhttp3:1.5.1'
 }
 
 android {

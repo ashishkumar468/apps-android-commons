@@ -1,6 +1,7 @@
 package fr.free.nrw.commons.contributions;
 
-import android.database.Cursor;
+import androidx.lifecycle.LiveData;
+import java.util.List;
 import javax.inject.Inject;
 
 /**
@@ -16,20 +17,10 @@ public class ContributionsRepository {
     }
 
     /**
-     * Fetch default number of contributions to be show, based on user preferences
+     * Fetch default number of contributions to be shown, based on user preferences
      */
     public int get(String uploadsShowing) {
         return localDataSource.get(uploadsShowing);
-    }
-
-
-    /**
-     * Get contribution object from cursor from LocalDataSource
-     * @param cursor
-     * @return
-     */
-    public Contribution getContributionFromCursor(Cursor cursor) {
-        return localDataSource.getContributionFromCursor(cursor);
     }
 
     /**
@@ -38,5 +29,9 @@ public class ContributionsRepository {
      */
     public void deleteContributionFromDB(Contribution contribution) {
         localDataSource.deleteContribution(contribution);
+    }
+
+    public LiveData<List<Contribution>> getAll() {
+        return localDataSource.getAll();
     }
 }

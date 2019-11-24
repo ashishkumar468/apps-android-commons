@@ -41,16 +41,6 @@ class ContributionsPresenterTest {
         contributionsPresenter?.onAttachView(view)
     }
 
-
-    /**
-     * Test presenter actions onGetContributionFromCursor
-     */
-    @Test
-    fun testGetContributionFromCursor() {
-        contributionsPresenter?.getContributionsFromCursor(cursor)
-        verify(repository)?.getContributionFromCursor(cursor)
-    }
-
     /**
      * Test presenter actions onDeleteContribution
      */
@@ -58,52 +48,6 @@ class ContributionsPresenterTest {
     fun testDeleteContribution() {
         contributionsPresenter?.deleteUpload(contribution)
         verify(repository)?.deleteContributionFromDB(contribution)
-    }
-
-    /**
-     * Test presenter actions on loaderFinished and has non zero media objects
-     */
-    @Test
-    fun testOnLoaderFinishedNonZeroContributions() {
-        Mockito.`when`(cursor.count).thenReturn(1)
-        contributionsPresenter?.onLoadFinished(loader, cursor)
-        verify(view)?.showProgress(false)
-        verify(view)?.showWelcomeTip(false)
-        verify(view)?.showNoContributionsUI(false)
-        verify(view)?.setUploadCount(cursor.count)
-    }
-
-    /**
-     * Test presenter actions on loaderFinished and has Zero media objects
-     */
-    @Test
-    fun testOnLoaderFinishedZeroContributions() {
-        Mockito.`when`(cursor.count).thenReturn(0)
-        contributionsPresenter?.onLoadFinished(loader, cursor)
-        verify(view)?.showProgress(false)
-        verify(view)?.showWelcomeTip(true)
-        verify(view)?.showNoContributionsUI(true)
-    }
-
-
-    /**
-     * Test presenter actions on loader reset
-     */
-    @Test
-    fun testOnLoaderReset() {
-        contributionsPresenter?.onLoaderReset(loader)
-        verify(view)?.showProgress(false)
-        verify(view)?.showWelcomeTip(true)
-        verify(view)?.showNoContributionsUI(true)
-    }
-
-    /**
-     * Test presenter actions on loader change
-     */
-    @Test
-    fun testOnChanged() {
-        contributionsPresenter?.onChanged()
-        verify(view)?.onDataSetChanged()
     }
 
 

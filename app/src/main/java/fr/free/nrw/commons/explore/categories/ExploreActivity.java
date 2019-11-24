@@ -36,8 +36,7 @@ import fr.free.nrw.commons.theme.NavigationBaseActivity;
 
 public class ExploreActivity
         extends NavigationBaseActivity
-        implements MediaDetailPagerFragment.MediaDetailProvider,
-        AdapterView.OnItemClickListener {
+        implements AdapterView.OnItemClickListener {
 
     private static final String FEATURED_IMAGES_CATEGORY = "Category:Featured_pictures_on_Wikimedia_Commons";
     private static final String MOBILE_UPLOADS_CATEGORY = "Category:Uploaded_with_Mobile/Android";
@@ -104,41 +103,6 @@ public class ExploreActivity
 
         viewPagerAdapter.setTabData(fragmentList, titleList);
         viewPagerAdapter.notifyDataSetChanged();
-    }
-
-    /**
-     * This method is called mediaDetailPagerFragment. It returns the Media Object at that Index
-     *
-     * @param i It is the index of which media object is to be returned which is same as
-     *          current index of viewPager.
-     * @return Media Object
-     */
-    @Override
-    public Media getMediaAtPosition(int i) {
-        if (mobileImagesListFragment.getAdapter() != null && tabLayout.getSelectedTabPosition() == 1) {
-            return (Media) mobileImagesListFragment.getAdapter().getItem(i);
-        } else if (featuredImagesListFragment.getAdapter() != null && tabLayout.getSelectedTabPosition() == 0) {
-            return (Media) featuredImagesListFragment.getAdapter().getItem(i);
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * This method is called on from getCount of MediaDetailPagerFragment
-     * The viewpager will contain same number of media items as that of media elements in adapter.
-     *
-     * @return Total Media count in the adapter
-     */
-    @Override
-    public int getTotalMediaCount() {
-        if (mobileImagesListFragment.getAdapter() != null && tabLayout.getSelectedTabPosition() == 1) {
-            return mobileImagesListFragment.getAdapter().getCount();
-        } else if (featuredImagesListFragment.getAdapter() != null && tabLayout.getSelectedTabPosition() == 0) {
-            return featuredImagesListFragment.getAdapter().getCount();
-        } else {
-            return 0;
-        }
     }
 
     /**

@@ -1,5 +1,7 @@
 package fr.free.nrw.commons.di;
 
+import static com.mapbox.mapboxsdk.Mapbox.getApplicationContext;
+
 import android.app.Activity;
 import android.content.ContentProviderClient;
 import android.content.Context;
@@ -7,8 +9,10 @@ import android.view.inputmethod.InputMethodManager;
 
 import androidx.collection.LruCache;
 
+import androidx.room.Room;
 import com.google.gson.Gson;
 
+import fr.free.nrw.commons.db.AppDatabase;
 import org.wikipedia.AppAdapter;
 
 import java.util.ArrayList;
@@ -196,5 +200,12 @@ public class CommonsApplicationModule {
     @Provides
     public String provideLoggedInUsername() {
         return Objects.toString(AppAdapter.get().getUserName(), "");
+    }
+
+    @Provides
+    @Singleton
+    public AppDatabase providesAppDatabase(){
+        return Room.databaseBuilder(applicationContext,
+                AppDatabase.class, "commons-app-db").allowMainThreadQueries().build();
     }
 }

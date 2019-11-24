@@ -17,9 +17,13 @@ import android.os.Build;
 import android.os.Process;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import androidx.work.Configuration;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
 import com.facebook.drawee.backends.pipeline.Fresco;
 import com.facebook.imagepipeline.core.ImagePipeline;
 import com.facebook.imagepipeline.core.ImagePipelineConfig;
+import com.facebook.stetho.Stetho;
 import com.squareup.leakcanary.LeakCanary;
 import com.squareup.leakcanary.RefWatcher;
 import fr.free.nrw.commons.auth.SessionManager;
@@ -28,8 +32,9 @@ import fr.free.nrw.commons.bookmarks.pictures.BookmarkPicturesDao;
 import fr.free.nrw.commons.category.CategoryDao;
 import fr.free.nrw.commons.concurrency.BackgroundPoolExceptionHandler;
 import fr.free.nrw.commons.concurrency.ThreadPoolService;
-import fr.free.nrw.commons.contributions.ContributionDao;
+import fr.free.nrw.commons.contributions.ContributionsWorker;
 import fr.free.nrw.commons.data.DBOpenHelper;
+import fr.free.nrw.commons.db.AppDatabase;
 import fr.free.nrw.commons.di.ApplicationlessInjection;
 import fr.free.nrw.commons.kvstore.JsonKvStore;
 import fr.free.nrw.commons.logging.FileLoggingTree;
@@ -77,6 +82,8 @@ public class CommonsApplication extends Application {
 
     @Inject @Named("default_preferences") JsonKvStore defaultPrefs;
 
+    @Inject AppDatabase appDatabase;
+
     /**
      * Constants begin
      */
@@ -116,14 +123,22 @@ public class CommonsApplication extends Application {
         super.onCreate();
         INSTANCE = this;
         ACRA.init(this);
-
         ApplicationlessInjection
                 .getInstance(this)
                 .getCommonsApplicationComponent()
                 .inject(this);
-
+        Stetho.initializeWithDefaults(this);
         AppAdapter.set(new CommonsAppAdapter(sessionManager, defaultPrefs));
-
+        OneTimeWorkRequest syncContributionsWork =
+                new OneTimeWorkRequest.Builder(ContributionsWorker.class)
+                        .build();
+        try {
+            Configuration workManagerConfig = new Configuration.Builder().build();
+            WorkManager.initialize(this, workManagerConfig);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        WorkManager.getInstance(this).enqueue(syncContributionsWork);
         initTimber();
 
 //        Set DownsampleEnabled to True to downsample the image in case it's heavy
@@ -268,9 +283,9 @@ public class CommonsApplication extends Application {
     private void updateAllDatabases() {
         dbOpenHelper.getReadableDatabase().close();
         SQLiteDatabase db = dbOpenHelper.getWritableDatabase();
-
+        //Delete the contributions table
+        appDatabase.contributionDao().deleteAll();
         CategoryDao.Table.onDelete(db);
-        ContributionDao.Table.onDelete(db);
         BookmarkPicturesDao.Table.onDelete(db);
         BookmarkLocationsDao.Table.onDelete(db);
     }

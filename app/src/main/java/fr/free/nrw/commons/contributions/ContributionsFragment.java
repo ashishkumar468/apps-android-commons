@@ -5,7 +5,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.database.DataSetObserver;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.view.LayoutInflater;
@@ -21,29 +20,28 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentManager.OnBackStackChangedListener;
 import androidx.fragment.app.FragmentTransaction;
 
-import java.util.ArrayList;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProviders;
 
+import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Named;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import fr.free.nrw.commons.HandlerService;
-import fr.free.nrw.commons.Media;
 import fr.free.nrw.commons.R;
 import fr.free.nrw.commons.campaigns.Campaign;
 import fr.free.nrw.commons.campaigns.CampaignView;
 import fr.free.nrw.commons.campaigns.CampaignsPresenter;
 import fr.free.nrw.commons.campaigns.ICampaignsView;
 import fr.free.nrw.commons.contributions.ContributionsListAdapter.Callback;
-import fr.free.nrw.commons.contributions.ContributionsListFragment.SourceRefresher;
 import fr.free.nrw.commons.di.CommonsDaggerSupportFragment;
 import fr.free.nrw.commons.kvstore.JsonKvStore;
 import fr.free.nrw.commons.location.LatLng;
 import fr.free.nrw.commons.location.LocationServiceManager;
 import fr.free.nrw.commons.location.LocationUpdateListener;
 import fr.free.nrw.commons.media.MediaDetailPagerFragment;
-import fr.free.nrw.commons.media.MediaDetailPagerFragment.MediaDetailProvider;
 import fr.free.nrw.commons.mwapi.OkHttpJsonApiClient;
 import fr.free.nrw.commons.nearby.NearbyController;
 import fr.free.nrw.commons.nearby.NearbyNotificationCardView;
@@ -68,19 +66,15 @@ import static fr.free.nrw.commons.utils.LengthUtils.formatDistanceBetween;
 public class ContributionsFragment
         extends CommonsDaggerSupportFragment
         implements
-        MediaDetailProvider,
         OnBackStackChangedListener,
-        SourceRefresher,
         LocationUpdateListener,
         ICampaignsView, ContributionsContract.View {
     @Inject @Named("default_preferences") JsonKvStore store;
-    @Inject ContributionDao contributionDao;
     @Inject NearbyController nearbyController;
     @Inject OkHttpJsonApiClient okHttpJsonApiClient;
     @Inject CampaignsPresenter presenter;
     @Inject LocationServiceManager locationManager;
 
-    private ArrayList<DataSetObserver> observersWaitingForLoad = new ArrayList<>();
     private UploadService uploadService;
     private boolean isUploadServiceConnected;
     private CompositeDisposable compositeDisposable = new CompositeDisposable();
@@ -93,14 +87,13 @@ public class ContributionsFragment
     @BindView(R.id.card_view_nearby) public NearbyNotificationCardView nearbyNotificationCardView;
     @BindView(R.id.campaigns_view) CampaignView campaignView;
 
-    @Inject ContributionsPresenter contributionsPresenter;
-
     private LatLng curLatLng;
 
     private boolean firstLocationUpdate = true;
     private boolean isFragmentAttachedBefore = false;
     private View checkBoxView;
     private CheckBox checkBox;
+    private ContributionsViewModel contributionsViewModel;
 
     /**
      * Since we will need to use parent activity on onAuthCookieAcquired, we have to wait
@@ -122,6 +115,7 @@ public class ContributionsFragment
     };
     private boolean shouldShowMediaDetailsFragment;
     private int numberOfContributions;
+    private List<Contribution> contributions;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -135,7 +129,7 @@ public class ContributionsFragment
         View view = inflater.inflate(R.layout.fragment_contributions, container, false);
         ButterKnife.bind(this, view);
         presenter.onAttachView(this);
-        contributionsPresenter.onAttachView(this);
+        initContributionsViewModel();
         campaignView.setVisibility(View.GONE);
         checkBoxView = View.inflate(getActivity(), R.layout.nearby_permission_dialog, null);
         checkBox = (CheckBox) checkBoxView.findViewById(R.id.never_ask_again);
@@ -190,6 +184,17 @@ public class ContributionsFragment
         return view;
     }
 
+    private void initContributionsViewModel() {
+        contributionsViewModel= ViewModelProviders.of(getActivity()).get(ContributionsViewModel.class);
+        contributionsViewModel.getAllContributions().observe(this,
+                new Observer<List<Contribution>>() {
+                    @Override
+                    public void onChanged(List<Contribution> contributions) {
+                        ContributionsFragment.this.contributions=contributions;
+                    }
+                });
+    }
+
     /**
      * Initialose the ContributionsListFragment and MediaDetailPagerFragment fragment
      */
@@ -206,27 +211,12 @@ public class ContributionsFragment
 
             @Override
             public void deleteUpload(Contribution contribution) {
-                contributionsPresenter.deleteUpload(contribution);
+                contributionsViewModel.deleteUpload(contribution);
             }
 
             @Override
             public void openMediaDetail(int position) {
                 showDetail(position);
-            }
-
-            @Override
-            public int getNumberOfContributions() {
-                return numberOfContributions;
-            }
-
-            @Override
-            public Contribution getContributionForPosition(int position) {
-                return (Contribution) contributionsPresenter.getItemAtPosition(position);
-            }
-
-            @Override
-            public int findItemPositionWithId(String id) {
-                return contributionsPresenter.getChildPositionWithId(id);
             }
         });
 
@@ -316,7 +306,6 @@ public class ContributionsFragment
         if (getActivity() != null) { // If fragment is attached to parent activity
             getActivity().bindService(uploadServiceIntent, uploadServiceConnection, Context.BIND_AUTO_CREATE);
             isUploadServiceConnected = true;
-            getActivity().getSupportLoaderManager().initLoader(0, null, contributionsPresenter);
         }
 
     }
@@ -332,21 +321,6 @@ public class ContributionsFragment
             showMediaDetailPagerFragment();
         }
         mediaDetailPagerFragment.showImage(i);
-    }
-
-    @Override
-    public void refreshSource() {
-        getActivity().getSupportLoaderManager().restartLoader(0, null, contributionsPresenter);
-    }
-
-    @Override
-    public Media getMediaAtPosition(int i) {
-        return contributionsPresenter.getItemAtPosition(i);
-    }
-
-    @Override
-    public int getTotalMediaCount() {
-        return numberOfContributions;
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -392,16 +366,14 @@ public class ContributionsFragment
     @Override
     public void onResume() {
         super.onResume();
-        contributionsPresenter.onAttachView(this);
         firstLocationUpdate = true;
         locationManager.addLocationListener(this);
 
         boolean isSettingsChanged = store.getBoolean(Prefs.IS_CONTRIBUTION_COUNT_CHANGED, false);
         store.putBoolean(Prefs.IS_CONTRIBUTION_COUNT_CHANGED, false);
         if (isSettingsChanged) {
-            refreshSource();
+            //TODO
         }
-
 
         if (store.getBoolean("displayNearbyCardView", true)) {
             checkPermissionsAndShowNearbyCardView();
@@ -583,7 +555,6 @@ public class ContributionsFragment
 
     @Override
     public void onDataSetChanged() {
-        contributionsListFragment.onDataSetChanged();
         mediaDetailPagerFragment.onDataSetChanged();
     }
 

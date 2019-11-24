@@ -61,19 +61,18 @@ public class MediaDetailFragment extends CommonsDaggerSupportFragment {
 
     private boolean editable;
     private boolean isCategoryImage;
-    private MediaDetailPagerFragment.MediaDetailProvider detailProvider;
     private int index;
     private Locale locale;
     private boolean isDeleted = false;
 
 
-    public static MediaDetailFragment forMedia(int index, boolean editable, boolean isCategoryImage) {
+    public static MediaDetailFragment forMedia(Media media, boolean editable, boolean isCategoryImage) {
         MediaDetailFragment mf = new MediaDetailFragment();
 
         Bundle state = new Bundle();
         state.putBoolean("editable", editable);
         state.putBoolean("isCategoryImage", isCategoryImage);
-        state.putInt("index", index);
+        mf.media=media;
         state.putInt("listIndex", 0);
         state.putInt("listTop", 0);
 
@@ -152,11 +151,6 @@ public class MediaDetailFragment extends CommonsDaggerSupportFragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        if (getParentFragment() != null
-            && getParentFragment() instanceof MediaDetailPagerFragment) {
-            detailProvider =
-                ((MediaDetailPagerFragment) getParentFragment()).getMediaDetailProvider();
-        }
         if (savedInstanceState != null) {
             editable = savedInstanceState.getBoolean("editable");
             isCategoryImage = savedInstanceState.getBoolean("isCategoryImage");
@@ -233,7 +227,6 @@ public class MediaDetailFragment extends CommonsDaggerSupportFragment {
                     .getParentFragment())).nearbyNotificationCardView
                     .setVisibility(View.GONE);
         }
-        media = detailProvider.getMediaAtPosition(index);
         displayMediaDetails();
     }
 

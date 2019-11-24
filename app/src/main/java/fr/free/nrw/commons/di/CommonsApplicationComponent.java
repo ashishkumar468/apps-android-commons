@@ -1,5 +1,7 @@
 package fr.free.nrw.commons.di;
 
+import fr.free.nrw.commons.contributions.ContributionsWorker;
+import fr.free.nrw.commons.upload.UploadService;
 import javax.inject.Singleton;
 
 import dagger.Component;
@@ -51,6 +53,10 @@ public interface CommonsApplicationComponent extends AndroidInjector<Application
     void inject(PicOfDayAppWidget picOfDayAppWidget);
 
     void inject(ContributionViewHolder viewHolder);
+
+    void inject(UploadService uploadService);
+
+    void inject(ContributionsWorker contributionsWorker);
 
     @Component.Builder
     @SuppressWarnings({"WeakerAccess", "unused"})

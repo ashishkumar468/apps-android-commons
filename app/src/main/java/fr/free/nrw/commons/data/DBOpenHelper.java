@@ -25,7 +25,6 @@ public class DBOpenHelper  extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase sqLiteDatabase) {
-        ContributionDao.Table.onCreate(sqLiteDatabase);
         CategoryDao.Table.onCreate(sqLiteDatabase);
         BookmarkPicturesDao.Table.onCreate(sqLiteDatabase);
         BookmarkLocationsDao.Table.onCreate(sqLiteDatabase);
@@ -34,7 +33,6 @@ public class DBOpenHelper  extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int from, int to) {
-        ContributionDao.Table.onUpdate(sqLiteDatabase, from, to);
         CategoryDao.Table.onUpdate(sqLiteDatabase, from, to);
         BookmarkPicturesDao.Table.onUpdate(sqLiteDatabase, from, to);
         BookmarkLocationsDao.Table.onUpdate(sqLiteDatabase, from, to);

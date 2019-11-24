@@ -1,5 +1,8 @@
 package fr.free.nrw.commons.contributions;
 
+import static android.view.View.GONE;
+import static android.view.View.VISIBLE;
+
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -10,29 +13,25 @@ import android.view.animation.AnimationUtils;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.RecyclerView.LayoutManager;
-
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import fr.free.nrw.commons.R;
 import fr.free.nrw.commons.contributions.ContributionsListAdapter.Callback;
 import fr.free.nrw.commons.di.CommonsDaggerSupportFragment;
 import fr.free.nrw.commons.kvstore.JsonKvStore;
 import fr.free.nrw.commons.wikidata.WikidataClient;
-
-import static android.view.View.GONE;
-import static android.view.View.VISIBLE;
+import java.util.ArrayList;
+import java.util.List;
+import javax.inject.Inject;
+import javax.inject.Named;
 
 /**
  * Created by root on 01.06.2018.
@@ -75,12 +74,31 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment {
     private String lastVisibleItemID;
 
     private int SPAN_COUNT=3;
+    private ContributionsViewModel contributionsViewModel;
+    private List<Contribution> contributions=new ArrayList<>();
 
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_contributions_list, container, false);
         ButterKnife.bind(this, view);
         initAdapter();
         return view;
+    }
+
+    private void initViewModel() {
+        contributionsViewModel = ViewModelProviders.of(getActivity())
+                .get(ContributionsViewModel.class);
+        contributionsViewModel.getAllContributions().observe(this,
+                contributions -> {
+                    ContributionsListFragment.this.contributions = contributions;
+                    adapter.addContributions(contributions);
+                });
+        contributionsViewModel.getCurrentItemPositionLiveData().observe(this,
+                integer -> {
+                    if (adapter != null && rvContributionsList.getLayoutManager() != null
+                            && adapter.getItemCount() > integer) {
+                        rvContributionsList.scrollToPosition(integer);
+                    }
+                });
     }
 
     public void setCallback(Callback callback) {
@@ -97,6 +115,7 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment {
         initRecyclerView();
         initializeAnimations();
         setListeners();
+        initViewModel();
     }
 
     private void initRecyclerView() {
@@ -181,22 +200,6 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment {
         noContributionsYet.setVisibility(shouldShow ? VISIBLE : GONE);
     }
 
-    public void onDataSetChanged() {
-        if (null != adapter) {
-            adapter.notifyDataSetChanged();
-            //Restoring last visible item position in cases of orientation change
-            if (null != lastVisibleItemID) {
-                int itemPositionWithId = callback.findItemPositionWithId(lastVisibleItemID);
-                rvContributionsList.scrollToPosition(itemPositionWithId);
-                lastVisibleItemID = null;//Reset the lastVisibleItemID once we have used it
-            }
-        }
-    }
-
-    public interface SourceRefresher {
-        void refreshSource();
-    }
-
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -207,10 +210,7 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment {
         }else if(layoutManager instanceof GridLayoutManager){
             lastVisibleItemPosition=((GridLayoutManager)layoutManager).findLastCompletelyVisibleItemPosition();
         }
-        String idOfItemWithPosition = findIdOfItemWithPosition(lastVisibleItemPosition);
-        if (null != idOfItemWithPosition) {
-            outState.putString(VISIBLE_ITEM_ID, idOfItemWithPosition);
-        }
+        contributionsViewModel.setCurrentItemPosition(lastVisibleItemPosition);
     }
 
     @Override
@@ -219,21 +219,6 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment {
         if(null!=savedInstanceState){
             lastVisibleItemID =savedInstanceState.getString(VISIBLE_ITEM_ID, null);
         }
-    }
-
-
-    /**
-     * Gets the id of the contribution from the db
-     * @param position
-     * @return
-     */
-    @Nullable
-    private String findIdOfItemWithPosition(int position) {
-        Contribution contributionForPosition = callback.getContributionForPosition(position);
-        if (null != contributionForPosition) {
-            return contributionForPosition.getContentUri().getLastPathSegment();
-        }
-        return null;
     }
 
 }
