@@ -512,7 +512,8 @@ Upload your first media by tapping on the add button.</string>
   <string name="category_edit_button_text">Update categories</string>
 
   <string name="share_image_via">Share image via</string>
-  <string name="no_achievements_yet">You haven\'t made any contributions yet</string>
+  <string name="you_have_no_achievements_yet">You haven\'t made any contributions yet</string>
+  <string name="no_achievements_yet">%s has not made any contributions yet</string>
   <string name="account_created">Account created!</string>
   <string name="text_copy">Text copied to clipboard</string>
   <string name="notification_mark_read">Notification marked as read</string>
@@ -611,5 +612,6 @@ Upload your first media by tapping on the add button.</string>
   <string name="menu_view_category_page">View category page</string>
   <string name="menu_view_item_page">View item page</string>
   <string name="read_help_link">Read more</string>
+  <string name="view_user_page">View user page</string>
 
 </resources>

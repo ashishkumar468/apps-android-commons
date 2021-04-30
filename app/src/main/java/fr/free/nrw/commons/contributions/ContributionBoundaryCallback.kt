@@ -16,11 +16,11 @@ import javax.inject.Named
  */
 class ContributionBoundaryCallback @Inject constructor(
     private val repository: ContributionsRepository,
-    private val sessionManager: SessionManager,
     private val mediaClient: MediaClient,
     @param:Named(CommonsApplicationModule.IO_THREAD) private val ioThreadScheduler: Scheduler
 ) : BoundaryCallback<Contribution>() {
     private val compositeDisposable: CompositeDisposable = CompositeDisposable()
+    var userName: String?=null
 
     /**
      * It is triggered when the list has no items User's Contributions are then fetched from the
@@ -50,9 +50,8 @@ class ContributionBoundaryCallback @Inject constructor(
      * Fetches contributions using the MediaWiki API
      */
     fun fetchContributions() {
-        if (sessionManager.userName != null) {
             compositeDisposable.add(
-                mediaClient.getMediaListForUser(sessionManager.userName!!)
+                mediaClient.getMediaListForUser(userName!!)
                     .map { mediaList ->
                         mediaList.map {
                             Contribution(media = it, state = Contribution.STATE_COMPLETED)
@@ -66,7 +65,6 @@ class ContributionBoundaryCallback @Inject constructor(
                         )
                     }
             )
-        }
     }
 
     /**
@@ -80,5 +78,12 @@ class ContributionBoundaryCallback @Inject constructor(
                     repository["last_fetch_timestamp"] = System.currentTimeMillis()
                 }
         )
+    }
+
+    /**
+     * Clean up
+     */
+    fun dispose() {
+        compositeDisposable.dispose()
     }
 }
