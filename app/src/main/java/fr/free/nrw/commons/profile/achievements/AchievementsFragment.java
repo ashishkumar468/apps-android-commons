@@ -407,7 +407,7 @@ public class AchievementsFragment extends CommonsDaggerSupportFragment {
     private void setZeroAchievements() {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity())
             .setMessage(
-                !userName.equals(sessionManager.getUserName()) ?
+                !sessionManager.getUserName().equals(userName) ?
                     getString(R.string.no_achievements_yet, userName) :
                     getString(R.string.you_have_no_achievements_yet)
             )
