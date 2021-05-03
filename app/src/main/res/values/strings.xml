@@ -614,5 +614,7 @@ Upload your first media by tapping on the add button.</string>
   <string name="remove">Removes a caption and description</string>
   <string name="read_help_link">Read more</string>
   <string name="view_user_page">View user page</string>
+  <string name="achievements_of_user">Achievements of user: %s</string>
+  <string name="contributions_of_user">Contributions of user: %s</string>
 
 </resources>

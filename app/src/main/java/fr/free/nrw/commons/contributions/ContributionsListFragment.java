@@ -20,6 +20,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.AppCompatTextView;
 import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -69,6 +70,8 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment impl
   TextView noContributionsYet;
   @BindView(R.id.fab_layout)
   LinearLayout fab_layout;
+  @BindView(R.id.tv_contributions_of_user)
+  AppCompatTextView tvContributionsOfUser;
 
   @Inject
   ContributionController controller;
@@ -123,6 +126,15 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment impl
     final View view = inflater.inflate(R.layout.fragment_contributions_list, container, false);
     ButterKnife.bind(this, view);
     contributionsListPresenter.onAttachView(this);
+
+    if (sessionManager.getUserName().equals(userName)) {
+      tvContributionsOfUser.setVisibility(GONE);
+      fab_layout.setVisibility(VISIBLE);
+    } else {
+      tvContributionsOfUser.setVisibility(VISIBLE);
+      tvContributionsOfUser.setText(getString(R.string.contributions_of_user, userName));
+      fab_layout.setVisibility(GONE);
+    }
     initAdapter();
     return view;
   }

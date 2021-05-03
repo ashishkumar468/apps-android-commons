@@ -21,6 +21,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.appcompat.view.ContextThemeWrapper;
+import androidx.appcompat.widget.AppCompatTextView;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.FileProvider;
 import androidx.vectordrawable.graphics.drawable.VectorDrawableCompat;
@@ -128,6 +129,9 @@ public class AchievementsFragment extends CommonsDaggerSupportFragment {
     @BindView(R.id.wikidata_edits)
     TextView wikidataEditsText;
 
+    @BindView(R.id.tv_achievements_of_user)
+    AppCompatTextView tvAchievementsOfUser;
+
     @Inject
     SessionManager sessionManager;
 
@@ -181,6 +185,12 @@ public class AchievementsFragment extends CommonsDaggerSupportFragment {
 
         // Set the initial value of WikiData edits to 0
         wikidataEditsText.setText("0");
+        if(sessionManager.getUserName().equals(userName)){
+            tvAchievementsOfUser.setVisibility(View.GONE);
+        }else{
+            tvAchievementsOfUser.setVisibility(View.VISIBLE);
+            tvAchievementsOfUser.setText(getString(R.string.achievements_of_user,userName));
+        }
         setWikidataEditCount();
         setAchievements();
         return rootView;
