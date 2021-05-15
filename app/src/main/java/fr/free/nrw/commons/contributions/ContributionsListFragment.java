@@ -33,15 +33,17 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import fr.free.nrw.commons.Media;
 import fr.free.nrw.commons.R;
 import fr.free.nrw.commons.Utils;
+import fr.free.nrw.commons.auth.SessionManager;
 import fr.free.nrw.commons.di.CommonsDaggerSupportFragment;
+import fr.free.nrw.commons.profile.ProfileActivity;
 import fr.free.nrw.commons.utils.DialogUtil;
 import fr.free.nrw.commons.media.MediaClient;
 import fr.free.nrw.commons.utils.ViewUtil;
 import java.util.Locale;
 import javax.inject.Inject;
 import javax.inject.Named;
+import org.apache.commons.lang3.StringUtils;
 import org.wikipedia.dataclient.WikiSite;
-import timber.log.Timber;
 
 /**
  * Created by root on 01.06.2018.
@@ -80,6 +82,9 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment impl
   @Inject
   ContributionsListPresenter contributionsListPresenter;
 
+  @Inject
+  SessionManager sessionManager;
+
   private Animation fab_close;
   private Animation fab_open;
   private Animation rotate_forward;
@@ -95,6 +100,21 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment impl
   private final int SPAN_COUNT_LANDSCAPE = 3;
   private final int SPAN_COUNT_PORTRAIT = 1;
 
+  String userName;
+
+  @Override
+  public void onCreate(@Nullable final Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    //Now that we are allowing this fragment to be started for
+    // any userName- we expect it to be passed as an argument
+    if (getArguments() != null) {
+      userName = getArguments().getString(ProfileActivity.KEY_USERNAME);
+    }
+
+    if (StringUtils.isEmpty(userName)) {
+      userName = sessionManager.getUserName();
+    }
+  }
 
   @Override
   public View onCreateView(
@@ -144,8 +164,8 @@ public class ContributionsListFragment extends CommonsDaggerSupportFragment impl
       ((SimpleItemAnimator) animator).setSupportsChangeAnimations(false);
     }
 
-    contributionsListPresenter.setup();
-    contributionsListPresenter.contributionList.observe(this.getViewLifecycleOwner(), adapter::submitList);
+    contributionsListPresenter.setup(userName, sessionManager.getUserName().equals(userName));
+    contributionsListPresenter.contributionList.observe(getViewLifecycleOwner(), adapter::submitList);
     rvContributionsList.setAdapter(adapter);
     adapter.registerAdapterDataObserver(new AdapterDataObserver() {
       @Override
